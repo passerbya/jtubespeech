@@ -5,7 +5,7 @@ import subprocess
 import shutil
 import pydub
 from pathlib import Path
-from util import make_video_url, make_basename, vtt2txt, autovtt2txt
+from util import make_video_url, make_basename, vtt2txt, autovtt2txt, get_subtitle_language
 import pandas as pd
 from tqdm import tqdm
 
@@ -46,8 +46,16 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
       base = fn["wav"].parent.joinpath(fn["wav"].stem)
       cp = subprocess.run(f"yt-dlp --sub-lang {lang} --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s", shell=True,universal_newlines=True)
       if cp.returncode != 0:
-        print(f"Failed to download the video: url = {url}")
-        continue
+        result = subprocess.check_output(f"yt-dlp --list-subs --sub-lang {lang} --skip-download {url}", \
+                                         shell=True, universal_newlines=True)
+        _, manu_lang = get_subtitle_language(result)
+        print(manu_lang)
+        for mlang in manu_lang:
+          if mlang.lower().startswith(lang):
+            cp = subprocess.run(f"yt-dlp --sub-lang {mlang.lower()} --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s", shell=True,universal_newlines=True)
+        if cp.returncode != 0:
+          print(f"Failed to download the video: url = {url}")
+          continue
       try:
         shutil.move(f"{base}.{lang}.vtt", fn["vtt"])
       except Exception as e:

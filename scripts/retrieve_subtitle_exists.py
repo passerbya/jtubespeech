@@ -31,24 +31,26 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
   else:
     subtitle_exists = pd.read_csv(fn_checkpoint)
 
+  vids = set(subtitle_exists["videoid"])
   # load video ID list
   n_video = 0
   for videoid in tqdm(open(fn_videoid).readlines()):
     videoid = videoid.strip(" ").strip("\n")
-    if videoid in set(subtitle_exists["videoid"]):
+    if videoid in vids:
       continue
 
     # send query to YouTube
     url = make_video_url(videoid)
+    import traceback
     try:
       result = subprocess.check_output(f"yt-dlp --list-subs --sub-lang {lang} --skip-download {url}", \
         shell=True, universal_newlines=True)
       auto_lang, manu_lang = get_subtitle_language(result)
-      subtitle_exists = subtitle_exists.append( \
-        {"videoid": videoid, "auto": lang in auto_lang, "sub": lang in manu_lang}, 
-        ignore_index=True)
+      subtitle_exists = pd.concat([subtitle_exists, pd.DataFrame([{"videoid": videoid, "auto": lang in auto_lang, "sub": lang in manu_lang}])], ignore_index=True)
       n_video += 1
+      vids.add(videoid)
     except:
+      traceback.print_exc()
       pass
 
     # write current result
