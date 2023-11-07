@@ -255,9 +255,10 @@ def align(
         "asr_train_config": asr_train_config,
         "asr_model_file": asr_model_file,
     }
+    print(kwargs)
     logging.info(f"Loading ASR model from {asr_model_file}")
     aligner = CTCSegmentation(
-        **model, **kwargs, kaldi_style_text=True, gratis_blank=True
+        **model, **kwargs, kaldi_style_text=True
     )
     fs = 16000
     logging.info(
