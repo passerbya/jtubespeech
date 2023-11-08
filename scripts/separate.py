@@ -22,7 +22,7 @@ if __name__ == "__main__":
         cmd = f"source /etc/profile && /root/miniconda3/bin/demucs -n htdemucs_ft --two-stems=vocals -o {Path(args.outdir).parent} {wav}"
         print(cmd)
         subprocess.check_output(cmd, shell=True).decode('utf-8', 'ignore')
-        shutil.move(outdir / 'vocals.wav')
+        shutil.move(outdir / 'vocals.wav', destination)
         shutil.rmtree(outdir)
         print(destination)
         print(outdir / 'vocals.wav')
