@@ -28,7 +28,7 @@ python scripts/make_search_word1.py --wikidict https://kaikki.org/dictionary/Ind
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
 
 4）检查是视频是否有字幕
-nohup  python scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-pages-articles-multistream-index.txt --checkpoint sub/ja/jawiki-latest-pages-articles-multistream-index.csv > ja.log 2>&1 &
+nohup python scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-pages-articles-multistream-index.txt --checkpoint sub/ja/jawiki-latest-pages-articles-multistream-index.csv > ja.log 2>&1 &
 
 5）下载视频
 nohup python scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-multistream-index.csv > ja.log 2>&1 &
@@ -53,3 +53,11 @@ awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' segments.txt > bad.
 7）分离背景音乐
 python scripts/separate.py --wavdir video/th/wav16k/ --outdir video/th/wav/
 
+
+D:\语料\第四批语料\中文-单语\20100046_猫耳FM_铜钱 S21015
+包含以下特殊字符的要去掉
+♪
+^\w+：
+【】
+()
+[]

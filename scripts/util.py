@@ -1,5 +1,4 @@
 import re
-from datetime import datetime as dt
 from pathlib import Path
 import subprocess
 
@@ -23,8 +22,12 @@ def make_basename(videoid: str) -> str:
   return str(Path(videoid[:2]) / videoid)
 
 
-def count_total_second(t: dt) -> float:
-  return t.hour * 3600 + t.minute * 60 + t.second * 1 + t.microsecond * 1e-6
+def count_total_second(ts: str) -> float:
+  ss = ts.split(".")
+  s1 = ss[0].split(":")
+  t = int(s1[0]) * 3600 + int(s1[1]) * 60 + int(s1[2])
+  t = t + float(ss[1]) / 1000
+  return t
 
 
 def obtain_channelid(videoid: str) -> str:
@@ -51,8 +54,8 @@ def vtt2txt(vtt: list) -> list:
   for v in vtt:
     m = re.match(r'(\d+\:\d+\:\d+\.\d+) --> (\d+\:\d+\:\d+\.\d+)', v.strip("\n"))
     if m is not None:
-      st = count_total_second(dt.strptime(m.groups()[0], "%H:%M:%S.%f"))
-      et = count_total_second(dt.strptime(m.groups()[1], "%H:%M:%S.%f"))
+      st = count_total_second(m.groups()[0])
+      et = count_total_second(m.groups()[1])
       txt.append([st, et, ""])
       is_started = True   
     elif is_started:
@@ -84,8 +87,8 @@ def autovtt2txt(vtt: list) -> list:
     if m is None:
       continue
 
-    st = count_total_second(dt.strptime(m.groups()[0], "%H:%M:%S.%f"))
-    et = count_total_second(dt.strptime(m.groups()[1], "%H:%M:%S.%f"))
+    st = count_total_second(m.groups()[0])
+    et = count_total_second(m.groups()[1])
 
     text_line = ""
     for line in [vtt[idx+1], vtt[idx+2]]:
