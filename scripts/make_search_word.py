@@ -85,7 +85,7 @@ def make_search_word(lang, outdir="word"):
             continue
           '''
         f.write(w + "\n")
-      except lang_detect_exception.LangDetectException:
+      except:
         continue
 
   return fn_word
