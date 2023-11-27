@@ -1,0 +1,339 @@
+#!/usr/bin/python
+# coding: utf-8
+import os
+import hashlib
+import re
+import chardet
+import codecs
+import langid
+import shutil
+from pathlib import Path
+
+def is_chinese(content):
+    mobj = re.search('[\u4E00-\u9FA5]+', content)
+    return mobj is not None
+
+def is_japanese(content):
+    mobj = re.search('[\u3040-\u309F\u30A0-\u30FF]+', content)
+    return mobj is not None
+
+def is_korean(content):
+    mobj = re.search('[\uAC00-\uD7A3]+', content)
+    return mobj is not None
+
+def normalize_text(txt):
+    #<i>Ulysses</i> as a story about a man
+    # {\an8}正在录音
+    # {\pos(248,100)}家
+    # {\an8}{\fn方正黑体简体\fs18\b1\bord1\shad1\3c&H2F2F2F&}"报应"
+    # \N{\3c&0x263FE7&}真人秀
+    # {*}Fax, dad.
+    # {/an8}Locke的旅程
+    # 插曲: {fn方正准圆_GBK\c&HFFFFFF&}「Bust A Move」 by Young MC
+    # {fad(530,1030)\an8\bord0\shad0\b1\pos(192,185)\fn方正细圆_GBK\fs19\c&HFFFFFF&}32  小  时  前
+    # {\fad(500,500)\fs18\bord1\3c&H0F0F14&\pos(248,208)}1958年8月29日
+    # 时间轴：{fs18}草鱼禾生       校对：莎楠    小熊嘟嘟    小坏
+    # {fry-30}今晚有约会
+    # {bei1}帽子神探还活着
+    txt = re.sub(r'(?i)\{[^{}]+\}', '', txt)
+    txt = re.sub(r'(?i)【[^【】]+】', '', txt)
+    txt = re.sub(r'(?i)\([^()]+\)', '', txt)
+    txt = re.sub(r'(?i)\[[^\[\]]+\]', '', txt)
+    txt = re.sub(r'(?i)\\N', '', txt)
+    txt = re.sub(r'(?i)<br(\s*/)?>', '\r\n', txt)
+    txt = re.sub(r'(?i)&nbsp;', ' ', txt)
+    txt = re.sub(r'<[^<>]*>', '', txt)
+    txt = re.sub(r'(?u)^\w+：', '', txt)
+    txt = txt.replace('♪', '')
+    txt = txt.replace('\h', '')
+
+    #?a love like ours is love that's hard to find?
+    if txt.find("?") == 0:
+        txt = txt[1:]
+
+    return txt
+
+def parse_times(ts):
+    #print ts
+    ss = ts.split(",")
+    s1 = ss[0].split(":")
+    t = int(s1[0]) * 3600 + int(s1[1]) * 60 + int(s1[2])
+    t = t * 1000 + int(ss[1])
+    return t
+
+def read_sub2txt(sub_file):
+    with open(sub_file, 'rb') as fhandle:
+        content = fhandle.read()
+    if content[:2] == codecs.BOM_UTF16:
+        content = content[2:]
+        try:
+            content = content.decode("utf16")
+        except Exception as e:
+            print(sub_file)
+            raise e
+
+    elif content[:3] == codecs.BOM_UTF8:
+        content = content[3:]
+        content = content.decode("utf-8")
+    elif content[:4] == codecs.BOM_UTF32:
+        content = content[4:]
+        content = content.decode("utf-32")
+    else :
+        cs = chardet.detect(content)["encoding"]
+        try:
+            if cs == "GB2312":
+                cs = "GB18030"
+            content = content.decode(cs)
+        except Exception:
+            try:
+                content = content.decode("utf-8")
+            except Exception:
+                try:
+                    content = content.decode("GB18030")
+                except Exception:
+                    try:
+                        content = content.decode("mbcs")
+                    except Exception:
+                        try:
+                            content = content.decode("utf16")
+                        except Exception:
+                            None
+    return content
+
+def read_srt_sub(sub_file):
+    content = read_sub2txt(sub_file)
+    subs = []
+    sep = '\r\n'
+    if content.find(sep) == -1:
+        sep = '\n'
+        if content.find(sep) == -1:
+            sep = '\r'
+    is_started = False
+    ts = None
+    lines = []
+    sp = re.split(sep, content)
+    i = 0
+    for line in sp:
+        m = re.match(r'\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}', line)
+        if m is not None:
+            is_started = True
+            ts = line.split('-->')
+        elif is_started:
+            if len(line) == 0:
+                if i < len(sp) - 1:
+                    if len(sp[i+1]) != 0 and not sp[i+1].isnumeric():
+                        i += 1
+                        continue
+
+                is_started = False
+                if len(lines) > 2 or len(lines) < 1:
+                    lines = []
+                    i += 1
+                    continue
+                start = parse_times(ts[0].strip())
+                end = parse_times(ts[1].strip())
+                subs.append((start, end, lines))
+                lines = []
+            else:
+                line = normalize_text(line)
+                if len(line) > 0:
+                    lines.append(line)
+        i += 1
+
+    line1 = 0
+    line2 = 0
+    for sub in subs:
+        if len(sub[2]) == 1:
+            line1 += 1
+        else:
+            line2 += 1
+
+    if line1 > line2:
+        #单语
+        subs = [sub for sub in subs if len(sub[2])==1]
+    else:
+        subs = [sub for sub in subs if len(sub[2])==2]
+    subs.sort(key=lambda x:x[0])
+
+    return subs, line1 < line2
+
+def md5sum(f):
+    m = hashlib.md5()
+    n = 1024 * 8
+    with open(f, 'rb') as inp:
+        while True:
+            buf = inp.read(n)
+            if not buf:
+                break
+            m.update(buf)
+
+    return m.hexdigest()
+
+def format_times(ts):
+    msec = ts % 1000
+    ts = ts / 1000
+    s = ts % 60
+    ts = ts / 60
+    m = ts % 60
+    ts = ts / 60
+    h = ts
+
+    return "%04d:%02d:%02d" % (h, m, s)
+
+def main():
+    lang_stat = {}
+    for lang_dir in src.glob("*"):
+        if not lang_dir.is_dir():
+            continue
+        for srt in lang_dir.glob("**/*.srt"):
+            wav = Path(srt.parent) / (srt.stem + '.wav')
+            md5 = md5sum(srt)
+            subs, is_bilingual = read_srt_sub(str(srt))
+            if lang_dir.name.startswith('中'):
+                lang = 'zh'
+                wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
+                txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
+                if is_bilingual:
+                    if lang_dir.name.endswith('译日'):
+                        line0 = 0
+                        line1 = 0
+                        for sub in subs:
+                            lines = sub[2]
+                            if is_japanese(lines[0]):
+                                line0 += 1
+                            elif len(lines) > 1 and is_japanese(lines[1]):
+                                line1 += line1
+                        if line0 > line1:
+                            #第0行是日语
+                            for sub in subs:
+                                lines = sub[2]
+                                del lines[0]
+                        else:
+                            #第1行是日语
+                            for sub in subs:
+                                lines = sub[2]
+                                if len(lines) > 1:
+                                    del lines[1]
+                    else:
+                        for sub in subs:
+                            lines = sub[2]
+                            if is_chinese(lines[0]):
+                                if len(lines) > 1:
+                                    del lines[1]
+                            elif len(lines) > 1 and is_chinese(lines[1]):
+                                del lines[0]
+            elif lang_dir.name.startswith('日'):
+                lang = 'ja'
+                wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
+                txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
+                if is_bilingual:
+                    if lang_dir.name.endswith('译中'):
+                        line0 = 0
+                        line1 = 0
+                        for sub in subs:
+                            lines = sub[2]
+                            if is_japanese(lines[0]):
+                                line0 += 1
+                            elif len(lines) > 1 and is_japanese(lines[1]):
+                                line1 += line1
+                        if line0 > line1:
+                            #第0行是日语
+                            for sub in subs:
+                                lines = sub[2]
+                                if len(lines) > 1:
+                                    del lines[1]
+                        else:
+                            #第1行是日语
+                            for sub in subs:
+                                lines = sub[2]
+                                del lines[0]
+                    else:
+                        for sub in subs:
+                            lines = sub[2]
+                            if is_japanese(lines[0]):
+                                if len(lines) > 1:
+                                    del lines[1]
+                            elif len(lines) > 1 and is_japanese(lines[1]):
+                                del lines[0]
+            else:
+                if lang_dir.name.startswith('英'):
+                    lang = 'en'
+                elif lang_dir.name.startswith('阿'):
+                    lang = 'ar'
+                elif lang_dir.name.startswith('德'):
+                    lang = 'de'
+                elif lang_dir.name.startswith('俄'):
+                    lang = 'ru'
+                elif lang_dir.name.startswith('法'):
+                    lang = 'fr'
+                elif lang_dir.name.startswith('韩'):
+                    lang = 'ko'
+                elif lang_dir.name.startswith('葡'):
+                    lang = 'pt'
+                elif lang_dir.name.startswith('泰'):
+                    lang = 'th'
+                elif lang_dir.name.startswith('西'):
+                    lang = 'es'
+                elif lang_dir.name.startswith('印地'):
+                    lang = 'hi'
+                elif lang_dir.name.startswith('越'):
+                    lang = 'vi'
+                wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
+                txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
+                if is_bilingual:
+                    for sub in subs:
+                        lines = sub[2]
+                        _lang0 = langid.classify(lines[0])[0]
+                        _lang1 = langid.classify(lines[1])[0] if len(lines) > 1 else lang
+                        if lang != _lang0:
+                            del lines[0]
+                        if lang != _lang1:
+                            del lines[1]
+            has_txt = False
+            for sub in subs:
+                if len(sub[2]) > 0:
+                    has_txt = True
+                    if lang not in lang_stat:
+                        lang_stat[lang] = 0
+                    lang_stat[lang] += sub[1] - sub[0]
+
+            if not has_txt:
+                print('-'*20, srt)
+
+            if not txt_path.parent.exists():
+                txt_path.parent.mkdir(parents=True)
+            if not wav_path.parent.exists():
+                wav_path.parent.mkdir(parents=True)
+            with open(txt_path, "wb") as f:
+                f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
+            if wav_path.exists():
+                os.remove(str(wav_path))
+            shutil.copy(str(wav), str(wav_path))
+            print(is_bilingual, txt_path, srt, 'ok')
+    csv_lines = [(float('inf'), 'lang,duration')]
+    for lang in lang_stat:
+        csv_lines.append((lang_stat[lang], f'{lang},{format_times(lang_stat[lang])}'))
+    csv_lines.sort(key=lambda x:-x[0])
+    with open(dest/'stat.csv', "wb") as f:
+        f.write('\r\n'.join([x[1] for x in csv_lines]).encode('utf-8'))
+
+if __name__ == "__main__":
+    '''
+    subs, is_bilingual = read_srt_sub('F:/data/2/1/《特别呈现》20160524功夫少林第五集天下.srt')
+    for sub in subs:
+        lines = sub[2]
+        if is_chinese(lines[0]):
+            if len(lines) > 1:
+                del lines[1]
+        elif len(lines) > 1 and is_chinese(lines[1]):
+            del lines[0]
+        print(lines)
+
+    with open('F:/data/2/1/《特别呈现》20160524功夫少林第五集天下.txt', "wb") as f:
+        f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
+    '''
+    src = Path('E:/语料/第四批语料')
+    dest = Path('E:/语料/biz')
+    if not dest.exists():
+        dest.mkdir()
+    main()
