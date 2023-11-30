@@ -111,17 +111,25 @@ def read_srt_sub(sub_file):
     is_started = False
     ts = None
     lines = []
-    sp = re.split(sep, content)
+    ss = []
+    for line in re.split(sep, content):
+        if line.find('\r') != -1:
+            ss.extend(line.split('\r'))
+        elif line.find('\n') != -1:
+            ss.extend(line.split('\n'))
+        else:
+            ss.append(line)
+
     i = 0
-    for line in sp:
+    for line in ss:
         m = re.match(r'\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}', line)
         if m is not None:
             is_started = True
             ts = line.split('-->')
         elif is_started:
             if len(line) == 0:
-                if i < len(sp) - 1:
-                    if len(sp[i+1]) != 0 and not sp[i+1].isnumeric():
+                if i < len(ss) - 1:
+                    if len(ss[i+1]) != 0 and not ss[i+1].isnumeric():
                         i += 1
                         continue
 
@@ -188,107 +196,61 @@ def main():
         for srt in lang_dir.glob("**/*.srt"):
             wav = Path(srt.parent) / (srt.stem + '.wav')
             md5 = md5sum(srt)
+            print(srt)
             subs, is_bilingual = read_srt_sub(str(srt))
             if lang_dir.name.startswith('中'):
                 lang = 'zh'
-                wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
-                txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
-                if is_bilingual:
-                    if lang_dir.name.endswith('译日'):
-                        line0 = 0
-                        line1 = 0
-                        for sub in subs:
-                            lines = sub[2]
-                            if is_japanese(lines[0]):
-                                line0 += 1
-                            elif len(lines) > 1 and is_japanese(lines[1]):
-                                line1 += line1
-                        if line0 > line1:
-                            #第0行是日语
-                            for sub in subs:
-                                lines = sub[2]
-                                del lines[0]
-                        else:
-                            #第1行是日语
-                            for sub in subs:
-                                lines = sub[2]
-                                if len(lines) > 1:
-                                    del lines[1]
-                    else:
-                        for sub in subs:
-                            lines = sub[2]
-                            if is_chinese(lines[0]):
-                                if len(lines) > 1:
-                                    del lines[1]
-                            elif len(lines) > 1 and is_chinese(lines[1]):
-                                del lines[0]
             elif lang_dir.name.startswith('日'):
                 lang = 'ja'
-                wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
-                txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
-                if is_bilingual:
-                    if lang_dir.name.endswith('译中'):
-                        line0 = 0
-                        line1 = 0
-                        for sub in subs:
-                            lines = sub[2]
-                            if is_japanese(lines[0]):
-                                line0 += 1
-                            elif len(lines) > 1 and is_japanese(lines[1]):
-                                line1 += line1
-                        if line0 > line1:
-                            #第0行是日语
-                            for sub in subs:
-                                lines = sub[2]
-                                if len(lines) > 1:
-                                    del lines[1]
-                        else:
-                            #第1行是日语
-                            for sub in subs:
-                                lines = sub[2]
-                                del lines[0]
-                    else:
-                        for sub in subs:
-                            lines = sub[2]
-                            if is_japanese(lines[0]):
-                                if len(lines) > 1:
-                                    del lines[1]
-                            elif len(lines) > 1 and is_japanese(lines[1]):
-                                del lines[0]
-            else:
-                if lang_dir.name.startswith('英'):
-                    lang = 'en'
-                elif lang_dir.name.startswith('阿'):
-                    lang = 'ar'
-                elif lang_dir.name.startswith('德'):
-                    lang = 'de'
-                elif lang_dir.name.startswith('俄'):
-                    lang = 'ru'
-                elif lang_dir.name.startswith('法'):
-                    lang = 'fr'
-                elif lang_dir.name.startswith('韩'):
-                    lang = 'ko'
-                elif lang_dir.name.startswith('葡'):
-                    lang = 'pt'
-                elif lang_dir.name.startswith('泰'):
-                    lang = 'th'
-                elif lang_dir.name.startswith('西'):
-                    lang = 'es'
-                elif lang_dir.name.startswith('印地'):
-                    lang = 'hi'
-                elif lang_dir.name.startswith('越'):
-                    lang = 'vi'
-                wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
-                txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
-                if is_bilingual:
+            elif lang_dir.name.startswith('英'):
+                lang = 'en'
+            elif lang_dir.name.startswith('阿'):
+                lang = 'ar'
+            elif lang_dir.name.startswith('德'):
+                lang = 'de'
+            elif lang_dir.name.startswith('俄'):
+                lang = 'ru'
+            elif lang_dir.name.startswith('法'):
+                lang = 'fr'
+            elif lang_dir.name.startswith('韩'):
+                lang = 'ko'
+            elif lang_dir.name.startswith('葡'):
+                lang = 'pt'
+            elif lang_dir.name.startswith('泰'):
+                lang = 'th'
+            elif lang_dir.name.startswith('西'):
+                lang = 'es'
+            elif lang_dir.name.startswith('印地'):
+                lang = 'hi'
+            elif lang_dir.name.startswith('越'):
+                lang = 'vi'
+            wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
+            txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
+            if is_bilingual:
+                line0 = ''
+                line1 = ''
+                new_subs = []
+                for sub in subs:
+                    lines = sub[2]
+                    if len(lines) < 2:
+                        continue
+                    line0 += lines[0] + '\n'
+                    line1 += lines[1] + '\n'
+                    new_subs.append(sub)
+                _lang0 = langid.classify(line0)[0]
+                _lang1 = langid.classify(line1)[0]
+                subs = new_subs
+                print(lang, _lang0, _lang1)
+                if lang == _lang0:
                     for sub in subs:
-                        lines = sub[2]
-                        _lang0 = langid.classify(lines[0])[0]
-                        _lang1 = langid.classify(lines[1])[0] if len(lines) > 1 else lang
-                        if lang != _lang0:
-                            del lines[0]
-                        if lang != _lang1:
-                            del lines[1]
+                        del sub[2][1]
+                elif lang == _lang1:
+                    for sub in subs:
+                        del sub[2][0]
+                else:
+                    print(txt_path, srt)
+                    continue
+
             has_txt = False
             for sub in subs:
                 if len(sub[2]) > 0:
@@ -300,15 +262,17 @@ def main():
             if not has_txt:
                 print('-'*20, srt)
 
+            #if txt_path.exists() and wav_path.exists():
+            #    continue
             if not txt_path.parent.exists():
                 txt_path.parent.mkdir(parents=True)
             if not wav_path.parent.exists():
                 wav_path.parent.mkdir(parents=True)
-            with open(txt_path, "wb") as f:
-                f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
             if wav_path.exists():
                 os.remove(str(wav_path))
             shutil.copy(str(wav), str(wav_path))
+            with open(txt_path, "wb") as f:
+                f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
             print(is_bilingual, txt_path, srt, 'ok')
     csv_lines = [(float('inf'), 'lang,duration')]
     for lang in lang_stat:
@@ -319,7 +283,7 @@ def main():
 
 if __name__ == "__main__":
     '''
-    subs, is_bilingual = read_srt_sub('F:/data/2/1/《特别呈现》20160524功夫少林第五集天下.srt')
+    subs, is_bilingual = read_srt_sub('Z:/38语料/语料盘/语料/第四批语料/英译中/21050011_IYUNO-SDI_系列视频翻译0506/Handy Manny61.srt')
     for sub in subs:
         lines = sub[2]
         if is_chinese(lines[0]):
@@ -332,8 +296,8 @@ if __name__ == "__main__":
     with open('F:/data/2/1/《特别呈现》20160524功夫少林第五集天下.txt', "wb") as f:
         f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
     '''
-    src = Path('E:/语料/第四批语料')
-    dest = Path('E:/语料/biz')
+    src = Path('D:/38语料/语料盘/语料/第四批语料')
+    dest = Path('D:/38语料/语料盘/语料/biz')
     if not dest.exists():
         dest.mkdir()
     main()
