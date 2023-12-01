@@ -194,7 +194,7 @@ def main():
         if not lang_dir.is_dir():
             continue
         for srt in lang_dir.glob("**/*.srt"):
-            wav = Path(srt.parent) / (srt.stem + '.wav')
+            wav = srt.parent / (srt.stem + '.wav')
             md5 = md5sum(srt)
             print(srt)
             subs, is_bilingual = read_srt_sub(str(srt))
