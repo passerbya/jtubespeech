@@ -11,8 +11,9 @@ git clone git@hf.co:openai/whisper-large-v2
 安装python环境
 pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
 pip install torch-complex --extra-index-url https://download.pytorch.org/whl/cu117
-source /opt/rh/devtoolset-8/enable
-pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn  romkan
+apt install gcc g++
+apt-get install ffmpeg
+pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python
 
 
 
