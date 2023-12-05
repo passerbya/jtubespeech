@@ -22,23 +22,28 @@ class TaskThread(threading.Thread):
             (_s, _d) = self.queue_obj.get()
             if _s is None and _d is None:
                 break
+            if _d.exists() and int(_d.stat().st_mtime) == int(_s.stat().st_mtime) and _d.stat().st_size == _s.stat().st_size:
+                print(d, 'exists')
+                continue
+            if not _d.parent.exists():
+                _d.parent.mkdir(parents=True)
             stinfo = os.stat(_s)
             if os.name == 'nt':
                 atime = int(stinfo.st_atime)
                 mtime = int(stinfo.st_mtime)
             try:
-                shutil.copy2(_s, _d)
+                shutil.copy(_s, _d)
                 os.utime(_d, (atime, mtime))
             except OSError:
                 _d = _d.parent / (_d.stem[:_d.stem.rfind(' ')] + _d.suffix)
                 print(_d)
                 try:
-                    shutil.copy2(_s, _d)
+                    shutil.copy(_s, _d)
                     os.utime(_d, (atime, mtime))
                 except OSError:
                     _d = _d.parent / (_d.stem[:int(len(_d.stem)/2)] + _d.suffix)
                     print(_d)
-                    shutil.copy2(_s, _d)
+                    shutil.copy(_s, _d)
                     os.utime(_d, (atime, mtime))
             print(f'{_d} ok')
 
@@ -61,11 +66,6 @@ if __name__ == "__main__":
         d = dest / s.relative_to(src)
         if s.is_dir():
             continue
-        if d.exists() and d.stat().st_mtime == s.stat().st_mtime and d.stat().st_size == s.stat().st_size:
-            print(d, 'exists')
-            continue
-        if not d.parent.exists():
-            d.parent.mkdir(parents=True)
         idx = i % threadCount
         ts[idx].add_data(s, d)
         i += 1
