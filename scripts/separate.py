@@ -7,7 +7,7 @@ import demucs.separate
 import subprocess
 import threading
 from pathlib import Path
-from queue import Queue
+from queue import Queue, LifoQueue
 
 def delete_folder(pth) :
     for sub in pth.iterdir():
@@ -22,7 +22,7 @@ class TaskThread(threading.Thread):
 
     def __init__(self, cuda_num):
         threading.Thread.__init__(self)
-        self.queue_obj = Queue()
+        self.queue_obj = LifoQueue()
         self.cuda_num = cuda_num
 
     def add_data(self, cmd, outdir, wav_dest, wav_src):
@@ -68,6 +68,6 @@ def main():
         ts[i].start()
 
 if __name__ == "__main__":
-    src = Path('/usr/local/share/38语料/语料盘/语料/4th_biz')
+    src = Path('/usr/local/corpus/4th_biz')
     main()
 
