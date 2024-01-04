@@ -254,6 +254,7 @@ def align(
 
     # Ignore configuration values that are set to None (from parser).
     kwargs = {k: v for (k, v) in kwargs.items() if v is not None}
+    lang = kwargs['lang'] if 'lang' in kwargs else ''
 
     # Prepare CTC segmentation module
     model = {
@@ -298,9 +299,10 @@ def align(
         f" (overlap={partitions_overlap_frames})"
     )
 
-    ## application-specific settings
-    # japanese text cleaning
-    aligner.preprocess_fn.text_cleaner.cleaner_types += ["jaconv"]
+    if lang == 'ja':
+        ## application-specific settings
+        # japanese text cleaning
+        aligner.preprocess_fn.text_cleaner.cleaner_types += ["jaconv"]
 
     # Create queues
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
@@ -339,15 +341,16 @@ def align(
         for i, utt in enumerate(utterance_list):
             utt_start, utt_end, utt_txt = utt.split(" ", 2)
             # text processing
-            utt_txt = text_processing(utt_txt)
+            if lang == 'ja':
+                utt_txt = text_processing(utt_txt)
             cleaned = aligner.preprocess_fn.text_cleaner(utt_txt)
             text.append(f"{stem}_{i:04} {cleaned}")
             timestamps.append((utt_start, utt_end))
 
         # audio
-        speech, sample_rate = soundfile.read(wav)
-        speech_len = speech.shape[0]
-        speech = torch.tensor(speech)
+        _speech, sample_rate = soundfile.read(wav)
+        speech_len = _speech.shape[0]
+        speech = torch.tensor(_speech)
         partitions = get_partitions(
             speech_len,
             max_len_s=longest_audio_segments,
@@ -400,9 +403,9 @@ def align(
                 print(wav, start, end)
                 timestamp_slice = timestamps[start:end]
                 text_slice = text[start:end]
-                speech_slice = speech[int(float(timestamp_slice[0][0]) * sample_rate):int(float(timestamp_slice[-1][-1]) * sample_rate)]
-                speech_len = speech_slice.shape[0]
-                speech_slice = torch.tensor(speech_slice)
+                _speech_slice = _speech[int(float(timestamp_slice[0][0]) * sample_rate):int(float(timestamp_slice[-1][-1]) * sample_rate)]
+                speech_len = _speech_slice.shape[0]
+                speech_slice = torch.tensor(_speech_slice)
                 partitions = get_partitions(
                     speech_len,
                     max_len_s=longest_audio_segments,
@@ -559,6 +562,10 @@ def get_parser():
         "--output",
         type=Path,
         help="Output segments directory.",
+    )
+    group.add_argument(
+        "--lang",
+        type=str_or_none,
     )
     return parser
 
