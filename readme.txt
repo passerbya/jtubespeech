@@ -78,12 +78,6 @@ python scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1
 
 
-python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave"
-python scripts/align.py \
- --asr_train_config /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/config.yaml \
- --asr_model_file /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/valid.acc.ave_10best.pth \
- --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1
-
 python scripts/model_downloader.py --asr_model_name "Yushi Ueda/ksponspeech_asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309_valid.acc.best"
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/config.yaml \
