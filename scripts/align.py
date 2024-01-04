@@ -57,7 +57,7 @@ except:
 # NUMBER_OF_PROCESSES determines how many CTC segmentation workers
 # are started. Set this higher or lower, depending how fast your
 # network can do the inference and how much RAM you have
-NUMBER_OF_PROCESSES = 4
+NUMBER_OF_PROCESSES = 1
 
 
 def text_processing(utt_txt):
@@ -167,8 +167,12 @@ def align_worker(in_queue, out_queue, num=0):
             out_queue.put(segments_str)
             # calculate average score
             scores = [boundary[2] for boundary in task.segments]
-            avg = sum(scores) / len(scores)
-            logging.info(f"Aligned {task.name} with avg score {avg:3.4f}")
+            if len(scores) == 0:
+                logging.info(f"{task.name} has no score {segments_str}")
+                print(segments_str, task.segments)
+            else:
+                avg = sum(scores) / len(scores)
+                logging.info(f"Aligned {task.name} with avg score {avg:3.4f}")
         except (AssertionError, IndexError) as e:
             # AssertionError: Audio is shorter than ground truth
             # IndexError: backtracking not successful (e.g. audio-text mismatch)
@@ -176,6 +180,7 @@ def align_worker(in_queue, out_queue, num=0):
                 f"Failed to align {task.utt_ids[0]} in {task.name} because of: {e}"
             )
         del task
+        torch.cuda.empty_cache()
     print(f"align_worker {num} stopped")
 
 
@@ -330,12 +335,14 @@ def align(
             item.replace("\t", " ").replace("\n", "") for item in utterance_list
         ]
         text = []
+        timestamps = []
         for i, utt in enumerate(utterance_list):
             utt_start, utt_end, utt_txt = utt.split(" ", 2)
             # text processing
             utt_txt = text_processing(utt_txt)
             cleaned = aligner.preprocess_fn.text_cleaner(utt_txt)
             text.append(f"{stem}_{i:04} {cleaned}")
+            timestamps.append((utt_start, utt_end))
 
         # audio
         speech, sample_rate = soundfile.read(wav)
@@ -385,7 +392,69 @@ def align(
             # RuntimeError: unknown CUDA value error (at inference)
             # TooShortUttError: Audio too short (at inference)
             # IndexError: ground truth is empty (thrown at preparation)
-            logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
+            #logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
+            start = 0
+            step = 10
+            while True:
+                end = start+step if len(timestamps)>start+step else len(timestamps)
+                print(wav, start, end)
+                timestamp_slice = timestamps[start:end]
+                text_slice = text[start:end]
+                speech_slice = speech[int(float(timestamp_slice[0][0]) * sample_rate):int(float(timestamp_slice[-1][-1]) * sample_rate)]
+                speech_len = speech_slice.shape[0]
+                speech_slice = torch.tensor(speech_slice)
+                partitions = get_partitions(
+                    speech_len,
+                    max_len_s=longest_audio_segments,
+                    samples_to_frames_ratio=samples_to_frames_ratio,
+                    fs=fs,
+                    overlap=partitions_overlap_frames,
+                )
+                duration = speech_len / sample_rate
+                # CAVEAT Assumption: Frontend discards trailing data:
+                expected_lpz_length = (speech_len // samples_to_frames_ratio) - 1
+
+                logging.info(
+                    f"Inference on file {stem} {count_files}/{num_files}: {len(utterance_list)}"
+                    f" utterances:  ({duration}s ~{len(partitions['partitions'])}p)"
+                )
+                try:
+                    # infer
+                    lpzs = [
+                        torch.tensor(aligner.get_lpz(speech_slice[start:end]))
+                        for start, end in partitions["partitions"]
+                    ]
+                    lpz = torch.cat(lpzs).numpy()
+                    lpz = np.delete(lpz, partitions["delete_overlap_list"], axis=0)
+                    if lpz.shape[0] != expected_lpz_length and lpz.shape[0] != (
+                            expected_lpz_length + 1
+                    ):
+                        # The one-off error fix is a little bit dirty,
+                        # but it helps to deal with different frontend configurations
+                        logging.error(
+                            f"LPZ size mismatch on {stem}: "
+                            f"got {lpz.shape[0]}-{expected_lpz_length} expected."
+                        )
+                    task = aligner.prepare_segmentation_task(
+                        text_slice, lpz, name=stem, speech_len=speech_len
+                    )
+                    # align (done by worker)
+                    task_queue.put(task)
+                except KeyboardInterrupt:
+                    print(" -- Received keyboard interrupt. Stopping.")
+                    break
+                except Exception as e:
+                    # RuntimeError: unknown CUDA value error (at inference)
+                    # TooShortUttError: Audio too short (at inference)
+                    # IndexError: ground truth is empty (thrown at preparation)
+                    logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
+                    print(wav, txt, text_slice)
+                    step = int(step // 10)
+                    continue
+                start = end
+                if end >= len(timestamps):
+                    break
+
     logging.info("Shutting down workers.")
     # wait for workers to finish
     time.sleep(20)

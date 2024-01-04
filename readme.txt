@@ -40,6 +40,7 @@ nohup python scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-mu
 https://huggingface.co/espnet/thai_commonvoice_blstm
 python scripts/model_downloader.py --asr_model_name espnet/thai_commonvoice_blstm
 
+
 mkdir -p segments/th/
 
 python scripts/align.py \
@@ -50,6 +51,49 @@ python scripts/align.py \
 cd segments/th/
 min_confidence_score=-0.3
 awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' segments.txt > bad.txt
+
+
+python scripts/model_downloader.py --asr_model_name kamo-naoyuki/aishell_conformer
+
+export CUDA_VISIBLE_DEVICES=1
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/a1dd2b872b48358daa6e136d4a5ab08b/exp/asr_train_asr_conformer3_raw_char_batch_bins4000000_accum_grad4_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/a1dd2b872b48358daa6e136d4a5ab08b/exp/asr_train_asr_conformer3_raw_char_batch_bins4000000_accum_grad4_sp/valid.acc.ave_10best.pth \
+ --wavdir /usr/local/corpus/4th_biz/zh/wav/ --txtdir /usr/local/corpus/4th_biz/zh/txt/ --output /usr/local/corpus/4th_biz/zh/segments/ --ngpu 1
+
+
+python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/gigaspeech_asr_train_asr_raw_en_bpe5000_valid.acc.ave"
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/29fdff494362014b948fc19e3c753b64/exp/asr_train_asr_raw_en_bpe5000/config.yaml \
+ --asr_model_file /root/.cache/espnet/29fdff494362014b948fc19e3c753b64/exp/asr_train_asr_raw_en_bpe5000/valid.acc.ave_10best.pth \
+ --wavdir /usr/local/corpus/4th_biz/en/wav/ --txtdir /usr/local/corpus/4th_biz/en/txt/ --output /usr/local/corpus/4th_biz/en/segments/ --ngpu 1
+
+
+python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave"
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/valid.acc.ave_10best.pth \
+ --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1
+
+
+python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave"
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/valid.acc.ave_10best.pth \
+ --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1
+
+python scripts/model_downloader.py --asr_model_name "Yushi Ueda/ksponspeech_asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309_valid.acc.best"
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/config.yaml \
+ --asr_model_file /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/33epoch.pth \
+ --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --ngpu 1
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/models--espnet--thai_commonvoice_blstm/snapshots/054f24d0eefc6c0822c4bb004f3cbc9256a03fe4/exp/asr_train_asr_rnn_raw_th_bpe150_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--espnet--thai_commonvoice_blstm/snapshots/054f24d0eefc6c0822c4bb004f3cbc9256a03fe4/exp/asr_train_asr_rnn_raw_th_bpe150_sp/valid.acc.ave_10best.pth \
+ --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1
 
 7）分离背景音乐
 python scripts/separate.py --wavdir video/th/wav16k/ --outdir video/th/wav/
