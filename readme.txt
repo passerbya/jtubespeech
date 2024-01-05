@@ -35,32 +35,20 @@ nohup python scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-pag
 nohup python scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-multistream-index.csv > ja.log 2>&1 &
 
 6）对齐文本与声音
-
-下载CTCSegmentation模型
-https://huggingface.co/espnet/thai_commonvoice_blstm
-python scripts/model_downloader.py --asr_model_name espnet/thai_commonvoice_blstm
-
-
-mkdir -p segments/th/
-
-python scripts/align.py \
- --asr_train_config /root/.cache/espnet/models--espnet--thai_commonvoice_blstm/snapshots/054f24d0eefc6c0822c4bb004f3cbc9256a03fe4/exp/asr_train_asr_rnn_raw_th_bpe150_sp/config.yaml \
- --asr_model_file /root/.cache/espnet/models--espnet--thai_commonvoice_blstm/snapshots/054f24d0eefc6c0822c4bb004f3cbc9256a03fe4/exp/asr_train_asr_rnn_raw_th_bpe150_sp/valid.acc.ave_10best.pth \
- --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1
-
-cd segments/th/
-min_confidence_score=-0.3
-awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' segments.txt > bad.txt
-
-
-python scripts/model_downloader.py --asr_model_name kamo-naoyuki/aishell_conformer
-
 export CUDA_VISIBLE_DEVICES=1
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
 
+下载CTCSegmentation模型
+langs="ar as br ca cnh cs cv cy de dv el en eo es et eu\
+ fa fr fy-NL ga-IE hsb ia id it ja ka kab ky lv mn mt\
+ nl or pa-IN pl pt rm-sursilv rm-vallader ro ru rw sah\
+ sl sv-SE ta tr tt uk vi zh-CN zh-HK zh-TW"
+Corpus combination with 52 languages(Commonvocie + voxforge)
+python scripts/model_downloader.py --asr_model_name ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best
+
 python scripts/align.py \
- --asr_train_config /root/.cache/espnet/a1dd2b872b48358daa6e136d4a5ab08b/exp/asr_train_asr_conformer3_raw_char_batch_bins4000000_accum_grad4_sp/config.yaml \
- --asr_model_file /root/.cache/espnet/a1dd2b872b48358daa6e136d4a5ab08b/exp/asr_train_asr_conformer3_raw_char_batch_bins4000000_accum_grad4_sp/valid.acc.ave_10best.pth \
+ --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
+ --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
  --wavdir /usr/local/corpus/4th_biz/zh/wav/ --txtdir /usr/local/corpus/4th_biz/zh/txt/ --output /usr/local/corpus/4th_biz/zh/segments/ --ngpu 1
 
 
@@ -85,9 +73,24 @@ python scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --ngpu 1
 
 python scripts/align.py \
- --asr_train_config /root/.cache/espnet/models--espnet--thai_commonvoice_blstm/snapshots/054f24d0eefc6c0822c4bb004f3cbc9256a03fe4/exp/asr_train_asr_rnn_raw_th_bpe150_sp/config.yaml \
- --asr_model_file /root/.cache/espnet/models--espnet--thai_commonvoice_blstm/snapshots/054f24d0eefc6c0822c4bb004f3cbc9256a03fe4/exp/asr_train_asr_rnn_raw_th_bpe150_sp/valid.acc.ave_10best.pth \
+ --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
+ --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
  --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1
+
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
+ --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
+ --wavdir video/vi/wav16k/ --txtdir video/vi/txt/ --output segments/vi/ --ngpu 1
+
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
+ --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
+ --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1
+
+cd segments/th/
+awk -v ms=-0.3 '{ if ($5 > ms) {print} }' segments.txt > bad.txt
 
 7）分离背景音乐
 python scripts/separate.py --wavdir video/th/wav16k/ --outdir video/th/wav/

@@ -262,8 +262,8 @@ def main():
             if not has_txt:
                 print('-'*20, srt)
 
-            #if txt_path.exists() and wav_path.exists():
-            #    continue
+            if txt_path.exists() and wav_path.exists():
+                continue
             if not txt_path.parent.exists():
                 txt_path.parent.mkdir(parents=True)
             if not wav_path.parent.exists():
@@ -296,8 +296,8 @@ if __name__ == "__main__":
     with open('F:/data/2/1/《特别呈现》20160524功夫少林第五集天下.txt', "wb") as f:
         f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
     '''
-    src = Path('D:/38语料/语料盘/语料/第四批语料')
-    dest = Path('D:/38语料/语料盘/语料/biz')
+    src = Path('/usr/local/corpus/4th_wav')
+    dest = Path('/usr/local/corpus/4th_biz')
     if not dest.exists():
         dest.mkdir()
     main()

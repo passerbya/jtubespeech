@@ -179,14 +179,21 @@ def align_worker(in_queue, out_queue, num=0):
             logging.error(
                 f"Failed to align {task.utt_ids[0]} in {task.name} because of: {e}"
             )
+            #import traceback
+            #traceback.print_exc()
         del task
         torch.cuda.empty_cache()
     print(f"align_worker {num} stopped")
 
 
 def listen_worker(in_queue, segments="./segments.txt"):
-    print("listen_worker started.")
-    with open(segments, "w") as f:
+    if segments.exists():
+        model = 'a'
+        print("listen_worker append started.")
+    else:
+        model = 'w'
+        print("listen_worker write started.")
+    with open(segments, model) as f:
         for item in iter(in_queue.get, "STOP"):
             if segments is None:
                 print(item)
@@ -251,6 +258,14 @@ def align(
         filename=str(logfile),
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
+
+    if segments.exists():
+        with open(segments) as f:
+            seg_list = f.readlines()
+        seg_list = set([item.split(' ', 1)[0] for item in seg_list])
+    else:
+        seg_list = set()
+    print(len(seg_list))
 
     # Ignore configuration values that are set to None (from parser).
     kwargs = {k: v for (k, v) in kwargs.items() if v is not None}
@@ -339,6 +354,8 @@ def align(
         text = []
         timestamps = []
         for i, utt in enumerate(utterance_list):
+            if f"{stem}_{i:04}" in seg_list:
+                continue
             utt_start, utt_end, utt_txt = utt.split(" ", 2)
             # text processing
             if lang == 'ja':
@@ -347,6 +364,8 @@ def align(
             text.append(f"{stem}_{i:04} {cleaned}")
             timestamps.append((utt_start, utt_end))
 
+        if len(timestamps) == 0:
+            continue
         # audio
         _speech, sample_rate = soundfile.read(wav)
         speech_len = _speech.shape[0]
@@ -453,6 +472,8 @@ def align(
                     logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
                     print(wav, txt, text_slice)
                     step = int(step // 10)
+                    if step == 0:
+                        break
                     continue
                 start = end
                 if end >= len(timestamps):
@@ -495,6 +516,12 @@ def get_parser():
         default="float32",
         choices=["float16", "float32", "float64"],
         help="Data type",
+    )
+    parser.add_argument(
+        "--use-dict-blank",
+        type=int,
+        default=None,
+        help="DEPRECATED.",
     )
 
     group = parser.add_argument_group("Text converter related")

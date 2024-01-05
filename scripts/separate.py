@@ -51,6 +51,8 @@ def main():
         if not lang_dir.is_dir():
             continue
         for srt in lang_dir.glob("**/*.txt"):
+            if srt.name == 'segments.txt':
+                continue
             wav_dest = Path(str(srt).replace('/txt/', '/wav/').replace('.txt', '.wav'))
             print(wav_dest)
             if wav_dest.exists():
