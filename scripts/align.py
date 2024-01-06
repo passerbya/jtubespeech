@@ -183,6 +183,7 @@ def align_worker(in_queue, out_queue, num=0):
             #traceback.print_exc()
         del task
         torch.cuda.empty_cache()
+    out_queue.put("STOP")
     print(f"align_worker {num} stopped")
 
 
@@ -416,7 +417,7 @@ def align(
             # IndexError: ground truth is empty (thrown at preparation)
             #logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
             start = 0
-            step = 10
+            step = 32
             while True:
                 end = start+step if len(timestamps)>start+step else len(timestamps)
                 print(wav, start, end)
@@ -471,7 +472,7 @@ def align(
                     # IndexError: ground truth is empty (thrown at preparation)
                     logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
                     print(wav, txt, text_slice)
-                    step = int(step // 10)
+                    step = int(step // 2)
                     if step == 0:
                         break
                     continue
@@ -485,7 +486,6 @@ def align(
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put("STOP")
-    done_queue.put("STOP")
 
 
 def get_parser():

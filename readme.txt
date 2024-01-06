@@ -63,7 +63,7 @@ python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/laborotv_as
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/config.yaml \
  --asr_model_file /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/valid.acc.ave_10best.pth \
- --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1
+ --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1 --lang ja
 
 
 python scripts/model_downloader.py --asr_model_name "Yushi Ueda/ksponspeech_asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309_valid.acc.best"
@@ -88,6 +88,7 @@ python scripts/align.py \
  --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
  --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
  --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1
+
 
 cd segments/th/
 awk -v ms=-0.3 '{ if ($5 > ms) {print} }' segments.txt > bad.txt
