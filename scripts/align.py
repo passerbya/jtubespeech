@@ -161,8 +161,12 @@ def align_worker(in_queue, out_queue, num=0):
     print(f"align_worker {num} started")
     for task in iter(in_queue.get, "STOP"):
         try:
+            start_time = task.segments[0][0]
             result = CTCSegmentation.get_segments(task)
             task.set(**result)
+            for i in range(len(task.segments)):
+                segment = task.segments[i]
+                task.segments[i] = (segment[0] + start_time, segment[1] + start_time, segment[2])
             segments_str = str(task)
             out_queue.put(segments_str)
             # calculate average score
@@ -352,12 +356,25 @@ def align(
         utterance_list = [
             item.replace("\t", " ").replace("\n", "") for item in utterance_list
         ]
+        keys = set()
+        repeat_keys = set()
+        for utt in utterance_list:
+            utt_start, utt_end, _ = utt.split(" ", 2)
+            key = f'{utt_start}_{utt_end}'
+            if key in keys:
+                repeat_keys.add(key)
+                continue
+            keys.add(key)
         text = []
         timestamps = []
         for i, utt in enumerate(utterance_list):
             if f"{stem}_{i:04}" in seg_list:
                 continue
             utt_start, utt_end, utt_txt = utt.split(" ", 2)
+            key = f'{utt_start}_{utt_end}'
+            if float(utt_end) - float(utt_start) <= 0 or key in repeat_keys:
+                print(utt)
+                continue
             # text processing
             if lang == 'ja':
                 utt_txt = text_processing(utt_txt)
@@ -406,6 +423,7 @@ def align(
             task = aligner.prepare_segmentation_task(
                 text, lpz, name=stem, speech_len=speech_len
             )
+            task.segments = [(0, duration, 0)]
             # align (done by worker)
             task_queue.put(task)
         except KeyboardInterrupt:
@@ -423,7 +441,13 @@ def align(
                 print(wav, start, end)
                 timestamp_slice = timestamps[start:end]
                 text_slice = text[start:end]
-                _speech_slice = _speech[int(float(timestamp_slice[0][0]) * sample_rate):int(float(timestamp_slice[-1][-1]) * sample_rate)]
+                start_time = float(timestamp_slice[0][0]) - 10
+                end_time = float(timestamp_slice[-1][-1]) + 10
+                if start_time < 0:
+                    start_time = 0
+                if end_time > float(timestamps[-1][-1]):
+                    end_time = float(timestamps[-1][-1])
+                _speech_slice = _speech[int(start_time * sample_rate):int(end_time * sample_rate)]
                 speech_len = _speech_slice.shape[0]
                 speech_slice = torch.tensor(_speech_slice)
                 partitions = get_partitions(
@@ -461,6 +485,7 @@ def align(
                     task = aligner.prepare_segmentation_task(
                         text_slice, lpz, name=stem, speech_len=speech_len
                     )
+                    task.segments = [(start_time, end_time, 0)]
                     # align (done by worker)
                     task_queue.put(task)
                 except KeyboardInterrupt:
