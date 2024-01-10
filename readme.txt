@@ -46,9 +46,10 @@ langs="ar as br ca cnh cs cv cy de dv el en eo es et eu\
 Corpus combination with 52 languages(Commonvocie + voxforge)
 python scripts/model_downloader.py --asr_model_name ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best
 
+python scripts/model_downloader.py --asr_model_name "espnet/jiyangtang_magicdata_asr_conformer_lm_transformer"
 python scripts/align.py \
- --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
- --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
+ --asr_train_config /root/.cache/espnet/models--espnet--jiyangtang_magicdata_asr_conformer_lm_transformer/snapshots/0937e0af018ed7261a939bdcb1b3bd8732bb7ff5/exp/asr_train_asr_raw_zh_char_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--espnet--jiyangtang_magicdata_asr_conformer_lm_transformer/snapshots/0937e0af018ed7261a939bdcb1b3bd8732bb7ff5/exp/asr_train_asr_raw_zh_char_sp/valid.acc.ave_10best.pth \
  --wavdir /usr/local/corpus/4th_biz/zh/wav/ --txtdir /usr/local/corpus/4th_biz/zh/txt/ --output /usr/local/corpus/4th_biz/zh/segments/ --ngpu 1
 
 
@@ -59,10 +60,10 @@ python scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/en/wav/ --txtdir /usr/local/corpus/4th_biz/en/txt/ --output /usr/local/corpus/4th_biz/en/segments/ --ngpu 1
 
 
-python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave"
+python scripts/model_downloader.py --asr_model_name "reazon-research/reazonspeech-espnet-next"
 python scripts/align.py \
- --asr_train_config /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/config.yaml \
- --asr_model_file /root/.cache/espnet/1124a7d8d7297e4115691fba79c17478/exp/asr_train_asr_conformer2_latest33_raw_char_sp/valid.acc.ave_10best.pth \
+ --asr_train_config /root/.cache/espnet/models--reazon-research--reazonspeech-espnet-next/snapshots/20f564ce571263ad488379c0cc033e0228a37eea/exp/asr_train_asr_conformer_raw_jp_char/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--reazon-research--reazonspeech-espnet-next/snapshots/20f564ce571263ad488379c0cc033e0228a37eea/exp/asr_train_asr_conformer_raw_jp_char/valid.acc.ave_3best.pth \
  --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1 --lang ja
 
 

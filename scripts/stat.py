@@ -14,6 +14,7 @@ def format_times(ts):
 
 def main():
     lang_stat = {}
+    skip_durations = {}
     for lang_dir in src.iterdir():
         if not lang_dir.is_dir():
             continue
@@ -34,24 +35,9 @@ def main():
                     item.replace("\t", " ").replace("\n", "") for item in utterance_list
                 ]
                 txt = {}
-                keys = set()
-                repeat_keys = set()
-                for utt in utterance_list:
-                    utt_start, utt_end, _ = utt.split(" ", 2)
-                    key = f'{utt_start}_{utt_end}'
-                    if key in keys:
-                        repeat_keys.add(key)
-                        continue
-                    keys.add(key)
-
                 for i, utt in enumerate(utterance_list):
                     utt_start, utt_end, _ = utt.split(" ", 2)
-                    key = f'{utt_start}_{utt_end}'
-                    if key in repeat_keys:
-                        print(lang, utt)
-                    if float(utt_end) - float(utt_start) <= 0:
-                        print(lang, utt)
-                    txt[f"{md5}_{i:04}"] = (float(utt_start), float(utt_end), utt, key in repeat_keys)
+                    txt[f"{md5}_{i:04}"] = (float(utt_start), float(utt_end), utt)
                 txts[txt_file] = txt
             else:
                 txt = txts[txt_file]
@@ -59,10 +45,14 @@ def main():
             end = float(end)
             score = float(score)
             if score > -0.3:
-                #print(item)
+                #print(md5)
                 continue
-            utt_start, utt_end, utt, is_repeated = txt[no]
-            if abs(utt_start - start) > 2 or utt_end - utt_start <= 0 or is_repeated:
+            utt_start, utt_end, utt = txt[no]
+            if abs(utt_start - start) > 2:
+                if lang not in skip_durations:
+                    skip_durations[lang] = 0
+                skip_durations[lang] += int((utt_end - utt_start)*1000)
+                print(lang, md5, format_times(skip_durations[lang]))
                 continue
             if lang not in lang_stat:
                 lang_stat[lang] = 0

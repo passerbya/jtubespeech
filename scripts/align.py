@@ -227,6 +227,16 @@ def find_files(wavdir, txtdir):
     return files_dict
 
 
+def format_times(ts):
+    ts = ts / 1000
+    s = ts % 60
+    ts = ts / 60
+    m = ts % 60
+    ts = ts / 60
+    h = ts
+
+    return "%d:%02d:%02d" % (h, m, s)
+
 def align(
     wavdir: Path,
     txtdir: Path,
@@ -346,6 +356,7 @@ def align(
 
     # Align
     count_files = 0
+    skip_duration = 0
     for stem in files_dict.keys():
         count_files += 1
         (wav, txt) = files_dict[stem]
@@ -356,15 +367,23 @@ def align(
         utterance_list = [
             item.replace("\t", " ").replace("\n", "") for item in utterance_list
         ]
-        keys = set()
-        repeat_keys = set()
-        for utt in utterance_list:
-            utt_start, utt_end, _ = utt.split(" ", 2)
-            key = f'{utt_start}_{utt_end}'
-            if key in keys:
-                repeat_keys.add(key)
-                continue
-            keys.add(key)
+        overlap_keys = set()
+        for i1, utt1 in enumerate(utterance_list):
+            utt_start1, utt_end1, _ = utt1.split(" ", 2)
+            key = f'{utt_start1}_{utt_end1}'
+            utt_start1 = float(utt_start1)
+            utt_end1 = float(utt_end1)
+            for i2, utt2 in enumerate(utterance_list):
+                if i1 == i2:
+                    continue
+                utt_start2, utt_end2, _ = utt2.split(" ", 2)
+                utt_start2 = float(utt_start2)
+                utt_end2 = float(utt_end2)
+                if max(utt_start1, utt_start2) < min(utt_end1, utt_end2):
+                    skip_duration += utt_end1 - utt_start1
+                    print(stem, utt1, utt2, format_times(int(skip_duration*1000)))
+                    overlap_keys.add(key)
+                    break
         text = []
         timestamps = []
         for i, utt in enumerate(utterance_list):
@@ -372,8 +391,7 @@ def align(
                 continue
             utt_start, utt_end, utt_txt = utt.split(" ", 2)
             key = f'{utt_start}_{utt_end}'
-            if float(utt_end) - float(utt_start) <= 0 or key in repeat_keys:
-                print(utt)
+            if float(utt_end) - float(utt_start) <= 0 or key in overlap_keys:
                 continue
             # text processing
             if lang == 'ja':
@@ -496,7 +514,6 @@ def align(
                     # TooShortUttError: Audio too short (at inference)
                     # IndexError: ground truth is empty (thrown at preparation)
                     logging.error(f"LPZ failed for file {stem}; {e.__class__}: {e}")
-                    print(wav, txt, text_slice)
                     step = int(step // 2)
                     if step == 0:
                         break
