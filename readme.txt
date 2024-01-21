@@ -13,7 +13,7 @@ pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --e
 pip install torch-complex --extra-index-url https://download.pytorch.org/whl/cu117
 apt install gcc g++
 apt-get install ffmpeg
-pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python
+pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl
 
 
 
@@ -46,6 +46,22 @@ langs="ar as br ca cnh cs cv cy de dv el en eo es et eu\
 Corpus combination with 52 languages(Commonvocie + voxforge)
 python scripts/model_downloader.py --asr_model_name ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best
 
+#https://huggingface.co/datasets/google/fleurs
+#https://huggingface.co/espnet/wanchichen_fleurs_asr_conformer_hier_lid_utt
+#数据集只有10小时，太少
+python scripts/model_downloader.py --asr_model_name espnet/wanchichen_fleurs_asr_conformer_hier_lid_utt
+/root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml
+/root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth
+vim /root/miniconda3/envs/jtubespeech/lib/python3.9/site-packages/espnet2/bin/asr_align.py
+424行
+        assert len(enc) >= 1, len(enc)
+        # Apply ctc layer to obtain log character probabilities
+        if len(enc) > 1:
+             lpz = self.ctc.log_softmax(enc[0]).detach()
+        else:
+             lpz = self.ctc.log_softmax(enc).detach()
+
+
 python scripts/model_downloader.py --asr_model_name "espnet/jiyangtang_magicdata_asr_conformer_lm_transformer"
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/models--espnet--jiyangtang_magicdata_asr_conformer_lm_transformer/snapshots/0937e0af018ed7261a939bdcb1b3bd8732bb7ff5/exp/asr_train_asr_raw_zh_char_sp/config.yaml \
@@ -66,7 +82,6 @@ python scripts/align.py \
  --asr_model_file /root/.cache/espnet/models--reazon-research--reazonspeech-espnet-next/snapshots/20f564ce571263ad488379c0cc033e0228a37eea/exp/asr_train_asr_conformer_raw_jp_char/valid.acc.ave_3best.pth \
  --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --ngpu 1 --lang ja
 
-
 python scripts/model_downloader.py --asr_model_name "Yushi Ueda/ksponspeech_asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309_valid.acc.best"
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/config.yaml \
@@ -78,6 +93,10 @@ python scripts/align.py \
  --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
  --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1
 
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth \
+ --wavdir /usr/local/corpus/4th_biz/hi/wav/ --txtdir /usr/local/corpus/4th_biz/hi/txt/ --output /usr/local/corpus/4th_biz/hi/segments/ --ngpu 1
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
@@ -93,6 +112,8 @@ python scripts/align.py \
 
 cd segments/th/
 awk -v ms=-0.3 '{ if ($5 > ms) {print} }' segments.txt > bad.txt
+
+km
 
 7）分离背景音乐
 python scripts/separate.py --wavdir video/th/wav16k/ --outdir video/th/wav/

@@ -42,7 +42,7 @@ class TaskThread(threading.Thread):
                 pass
 
 def main():
-    thread_count = 2
+    thread_count = 1
     ts = []
     for i in range(thread_count):
         ts.append(TaskThread(i))
@@ -70,6 +70,6 @@ def main():
         ts[i].start()
 
 if __name__ == "__main__":
-    src = Path('/usr/local/corpus/4th_biz')
+    src = Path('/usr/local/corpus/jtubespeech/th')
     main()
 
