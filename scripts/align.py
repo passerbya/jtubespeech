@@ -14,6 +14,7 @@ model = d.download_and_unpack(asr_model_name)
 align(wavdir=dir_wav, txtdir=dir_txt, output=output, ngpu=ngpu, longest_audio_segments=longest_audio_segments, **model)
 """
 
+import regex
 import argparse
 import logging
 import sys
@@ -36,7 +37,7 @@ from torch.multiprocessing import Process, Queue
 from espnet2.utils.types import str2bool
 
 # Language specific imports - japanese
-from num2words import num2words
+from tts_norm.normalizer import Normalizer
 import re
 
 try:
@@ -58,9 +59,9 @@ except:
 # are started. Set this higher or lower, depending how fast your
 # network can do the inference and how much RAM you have
 NUMBER_OF_PROCESSES = 1
+normalizer_map = {}
 
-
-def text_processing(utt_txt):
+def text_processing(utt_txt, _lang):
     """Normalize text.
     Use for Japanese text.
     Args:
@@ -68,23 +69,33 @@ def text_processing(utt_txt):
     Returns:
         utt_txt: Normalized
     """
-    # convert UTF-16 latin chars to ASCII
-    if NEOLOGDN_AVAILABLE:
-        utt_txt = neologdn.normalize(utt_txt)
-    # Romanji to Hiragana
-    if ROMKAN_AVAILABLE:
-        utt_txt = romkan.to_hiragana(utt_txt)
+    if _lang == 'ja':
+        # convert UTF-16 latin chars to ASCII
+        if NEOLOGDN_AVAILABLE:
+            utt_txt = neologdn.normalize(utt_txt)
+        # Romanji to Hiragana
+        if ROMKAN_AVAILABLE:
+            utt_txt = romkan.to_hiragana(utt_txt)
     # replace some special characters
     utt_txt = utt_txt.replace('"', "").replace(",", "")
+    if _lang in normalizer_map:
+        normalizer = normalizer_map[_lang]
+    else:
+        normalizer = Normalizer(_lang)
+        normalizer_map[_lang] = normalizer
+    txt, unnormalize = normalizer.normalize(utt_txt)
     # replace all the numbers
+    '''
     numbers = re.findall(r"\d+\.?\d*", utt_txt)
-    transcribed_numbers = [num2words(item, lang="ja") for item in numbers]
+    transcribed_numbers = [num2words(item, lang=_lang) for item in numbers]
     for nr in range(len(numbers)):
+        print(utt_txt)
         old_nr = numbers[nr]
         new_nr = transcribed_numbers[nr]
         utt_txt = utt_txt.replace(old_nr, new_nr, 1)
     return utt_txt
-
+    '''
+    return txt, unnormalize
 
 def get_partitions(
     t: int = 100000,
@@ -333,6 +344,10 @@ def align(
         ## application-specific settings
         # japanese text cleaning
         aligner.preprocess_fn.text_cleaner.cleaner_types += ["jaconv"]
+    elif lang == 'vi':
+        aligner.preprocess_fn.text_cleaner.cleaner_types += ["vietnamese"]
+    elif lang == 'ko':
+        aligner.preprocess_fn.text_cleaner.cleaner_types += ["korean_cleaner"]
 
     # Create queues
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
@@ -381,7 +396,7 @@ def align(
                 utt_end2 = float(utt_end2)
                 if max(utt_start1, utt_start2) < min(utt_end1, utt_end2):
                     skip_duration += utt_end1 - utt_start1
-                    print(stem, utt1, utt2, format_times(int(skip_duration*1000)))
+                    #print(stem, utt1, utt2, format_times(int(skip_duration*1000)))
                     overlap_keys.add(key)
                     break
         text = []
@@ -394,8 +409,10 @@ def align(
             if float(utt_end) - float(utt_start) <= 0 or key in overlap_keys:
                 continue
             # text processing
-            if lang == 'ja':
-                utt_txt = text_processing(utt_txt)
+            utt_txt, unnormalize = text_processing(utt_txt, lang)
+            if unnormalize:
+                print(txt, utt)
+                continue
             cleaned = aligner.preprocess_fn.text_cleaner(utt_txt)
             text.append(f"{stem}_{i:04} {cleaned}")
             timestamps.append((utt_start, utt_end))

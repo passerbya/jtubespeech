@@ -13,7 +13,7 @@ pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --e
 pip install torch-complex --extra-index-url https://download.pytorch.org/whl/cu117
 apt install gcc g++
 apt-get install ffmpeg
-pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl
+pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv
 
 
 
@@ -23,7 +23,7 @@ https://github.com/ytdl-org/youtube-dl/issues/31530#Description
 https://github.com/ytdl-org/ytdl-nightly/releases/tag/2023.09.25
 
 2）从维基词典下载youtube搜索词条，https://kaikki.org/dictionary/
-python scripts/make_search_word1.py --wikidict https://kaikki.org/dictionary/Indonesian/kaikki.org-dictionary-Indonesian.json --lang id
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Indonesian/kaikki.org-dictionary-Indonesian.json id
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
@@ -66,14 +66,14 @@ python scripts/model_downloader.py --asr_model_name "espnet/jiyangtang_magicdata
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/models--espnet--jiyangtang_magicdata_asr_conformer_lm_transformer/snapshots/0937e0af018ed7261a939bdcb1b3bd8732bb7ff5/exp/asr_train_asr_raw_zh_char_sp/config.yaml \
  --asr_model_file /root/.cache/espnet/models--espnet--jiyangtang_magicdata_asr_conformer_lm_transformer/snapshots/0937e0af018ed7261a939bdcb1b3bd8732bb7ff5/exp/asr_train_asr_raw_zh_char_sp/valid.acc.ave_10best.pth \
- --wavdir /usr/local/corpus/4th_biz/zh/wav/ --txtdir /usr/local/corpus/4th_biz/zh/txt/ --output /usr/local/corpus/4th_biz/zh/segments/ --ngpu 1
+ --wavdir /usr/local/corpus/4th_biz/zh/wav/ --txtdir /usr/local/corpus/4th_biz/zh/txt/ --output /usr/local/corpus/4th_biz/zh/segments/ --ngpu 1 --lang zh
 
 
 python scripts/model_downloader.py --asr_model_name "Shinji Watanabe/gigaspeech_asr_train_asr_raw_en_bpe5000_valid.acc.ave"
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/29fdff494362014b948fc19e3c753b64/exp/asr_train_asr_raw_en_bpe5000/config.yaml \
  --asr_model_file /root/.cache/espnet/29fdff494362014b948fc19e3c753b64/exp/asr_train_asr_raw_en_bpe5000/valid.acc.ave_10best.pth \
- --wavdir /usr/local/corpus/4th_biz/en/wav/ --txtdir /usr/local/corpus/4th_biz/en/txt/ --output /usr/local/corpus/4th_biz/en/segments/ --ngpu 1
+ --wavdir /usr/local/corpus/4th_biz/en/wav/ --txtdir /usr/local/corpus/4th_biz/en/txt/ --output /usr/local/corpus/4th_biz/en/segments/ --ngpu 1 --lang en
 
 
 python scripts/model_downloader.py --asr_model_name "reazon-research/reazonspeech-espnet-next"
@@ -86,28 +86,28 @@ python scripts/model_downloader.py --asr_model_name "Yushi Ueda/ksponspeech_asr_
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/config.yaml \
  --asr_model_file /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/33epoch.pth \
- --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --ngpu 1
+ --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --ngpu 1  --lang ko
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
  --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
- --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1
+ --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1  --lang th
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml \
  --asr_model_file /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth \
- --wavdir /usr/local/corpus/4th_biz/hi/wav/ --txtdir /usr/local/corpus/4th_biz/hi/txt/ --output /usr/local/corpus/4th_biz/hi/segments/ --ngpu 1
+ --wavdir /usr/local/corpus/4th_biz/hi/wav/ --txtdir /usr/local/corpus/4th_biz/hi/txt/ --output /usr/local/corpus/4th_biz/hi/segments/ --ngpu 1  --lang hi
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
  --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
- --wavdir video/vi/wav16k/ --txtdir video/vi/txt/ --output segments/vi/ --ngpu 1
+ --wavdir video/vi/wav16k/ --txtdir video/vi/txt/ --output segments/vi/ --ngpu 1  --lang vi
 
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
  --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
- --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1
+ --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1  --lang th
 
 
 cd segments/th/
