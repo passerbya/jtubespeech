@@ -40,21 +40,6 @@ from espnet2.utils.types import str2bool
 from tts_norm.normalizer import Normalizer
 import re
 
-try:
-    import neologdn
-
-    NEOLOGDN_AVAILABLE = True
-except:
-    print("ERROR: neologdn is not available!")
-    NEOLOGDN_AVAILABLE = False
-try:
-    import romkan
-
-    ROMKAN_AVAILABLE = True
-except:
-    print("ERROR: romkan is not available!")
-    ROMKAN_AVAILABLE = False
-
 # NUMBER_OF_PROCESSES determines how many CTC segmentation workers
 # are started. Set this higher or lower, depending how fast your
 # network can do the inference and how much RAM you have
@@ -66,16 +51,10 @@ def text_processing(utt_txt, _lang):
     Use for Japanese text.
     Args:
         utt_txt: String of Japanese text.
+        _lang: 语言代码
     Returns:
         utt_txt: Normalized
     """
-    if _lang == 'ja':
-        # convert UTF-16 latin chars to ASCII
-        if NEOLOGDN_AVAILABLE:
-            utt_txt = neologdn.normalize(utt_txt)
-        # Romanji to Hiragana
-        if ROMKAN_AVAILABLE:
-            utt_txt = romkan.to_hiragana(utt_txt)
     # replace some special characters
     utt_txt = utt_txt.replace('"', "").replace(",", "")
     if _lang in normalizer_map:
