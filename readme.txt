@@ -13,7 +13,7 @@ pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --e
 pip install torch-complex --extra-index-url https://download.pytorch.org/whl/cu117
 apt install gcc g++
 apt-get install ffmpeg
-pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv
+pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea
 
 
 
@@ -45,21 +45,13 @@ langs="ar as br ca cnh cs cv cy de dv el en eo es et eu\
  sl sv-SE ta tr tt uk vi zh-CN zh-HK zh-TW"
 Corpus combination with 52 languages(Commonvocie + voxforge)
 python scripts/model_downloader.py --asr_model_name ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best
+/root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
+/root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
 
-#https://huggingface.co/datasets/google/fleurs
-#https://huggingface.co/espnet/wanchichen_fleurs_asr_conformer_hier_lid_utt
-#数据集只有10小时，太少
-python scripts/model_downloader.py --asr_model_name espnet/wanchichen_fleurs_asr_conformer_hier_lid_utt
-/root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml
-/root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth
-vim /root/miniconda3/envs/jtubespeech/lib/python3.9/site-packages/espnet2/bin/asr_align.py
-424行
-        assert len(enc) >= 1, len(enc)
-        # Apply ctc layer to obtain log character probabilities
-        if len(enc) > 1:
-             lpz = self.ctc.log_softmax(enc[0]).detach()
-        else:
-             lpz = self.ctc.log_softmax(enc).detach()
+145 languages
+python scripts/model_downloader.py --asr_model_name espnet/interspeech2024_dsuchallenge_wavlm_large_21_baseline
+/root/.cache/espnet/models--espnet--interspeech2024_dsuchallenge_wavlm_large_21_baseline/snapshots/8f5c6af3b2903f46ec80e0f138c1fe9c06ae3697/exp/asr_train_discrete_asr_e_branchformer1_1gpu_lr5e-4_warmup5k_raw_wavlm_large_21_km2000_bpe_rm3000_bpe_ts6000/config.yaml
+/root/.cache/espnet/models--espnet--interspeech2024_dsuchallenge_wavlm_large_21_baseline/snapshots/8f5c6af3b2903f46ec80e0f138c1fe9c06ae3697/exp/asr_train_discrete_asr_e_branchformer1_1gpu_lr5e-4_warmup5k_raw_wavlm_large_21_km2000_bpe_rm3000_bpe_ts6000/valid.acc.ave_10best.pth
 
 
 python scripts/model_downloader.py --asr_model_name "espnet/jiyangtang_magicdata_asr_conformer_lm_transformer"
@@ -86,28 +78,72 @@ python scripts/model_downloader.py --asr_model_name "Yushi Ueda/ksponspeech_asr_
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/config.yaml \
  --asr_model_file /root/.cache/espnet/f1b0f522ff3c6aa535403c383916a888/exp/asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309/33epoch.pth \
- --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --ngpu 1  --lang ko
+ --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --ngpu 1 --lang ko
 
-python scripts/align.py \
- --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
- --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
- --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1  --lang th
+#https://huggingface.co/datasets/google/fleurs
+#https://huggingface.co/espnet/wanchichen_fleurs_asr_conformer_hier_lid_utt
+python scripts/model_downloader.py --asr_model_name espnet/wanchichen_fleurs_asr_conformer_hier_lid_utt
+/root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml
+/root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth
+vim /root/miniconda3/envs/jtubespeech/lib/python3.9/site-packages/espnet2/bin/asr_align.py
+424行
+        assert len(enc) >= 1, len(enc)
+        # Apply ctc layer to obtain log character probabilities
+        if len(enc) > 1:
+             lpz = self.ctc.log_softmax(enc[0]).detach()
+        else:
+             lpz = self.ctc.log_softmax(enc).detach()
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml \
  --asr_model_file /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth \
- --wavdir /usr/local/corpus/4th_biz/hi/wav/ --txtdir /usr/local/corpus/4th_biz/hi/txt/ --output /usr/local/corpus/4th_biz/hi/segments/ --ngpu 1  --lang hi
+ --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --ngpu 1 --lang th
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth \
+ --wavdir /usr/local/corpus/4th_biz/hi/wav/ --txtdir /usr/local/corpus/4th_biz/hi/txt/ --output /usr/local/corpus/4th_biz/hi/segments/ --ngpu 1 --lang hi
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth \
+ --wavdir /usr/local/corpus/4th_biz/ru/wav/ --txtdir /usr/local/corpus/4th_biz/ru/txt/ --output /usr/local/corpus/4th_biz/ru/segments/ --ngpu 1 --lang ru
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/config.yaml \
+ --asr_model_file /root/.cache/espnet/models--espnet--wanchichen_fleurs_asr_conformer_hier_lid_utt/snapshots/ab07127c8e882dcaf1936d85480fb9cf51e19a97/exp/asr_train_asr_raw_all_bpe6500_sp/valid.acc.ave_3best.pth \
+ --wavdir video/vi/wav16k/ --txtdir video/vi/txt/ --output segments/vi/ --ngpu 1 --lang vi
+
 
 python scripts/align.py \
  --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
  --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
- --wavdir video/vi/wav16k/ --txtdir video/vi/txt/ --output segments/vi/ --ngpu 1  --lang vi
+ --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1 --lang th
 
+English, German, Dutch, Spanish, French, Italian, Portuguese, Polish
+python scripts/model_downloader.py --asr_model_name ftshijt/mls_asr_transformer_valid.acc.best
+/root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/config.yaml
+/root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/29epoch.pth
 
 python scripts/align.py \
- --asr_train_config /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/config.yaml \
- --asr_model_file /root/.cache/espnet/811ae5a5580d9e5a8dcdc98f16b3c196/exp/asr_train_asr_raw_bpe7000/valid.acc.ave_10best.pth \
- --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --ngpu 1  --lang th
+ --asr_train_config /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/config.yaml \
+ --asr_model_file /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/29epoch.pth \
+ --wavdir /usr/local/corpus/4th_biz/de/wav/ --txtdir /usr/local/corpus/4th_biz/de/txt/ --output /usr/local/corpus/4th_biz/de/segments/ --ngpu 1 --lang de
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/config.yaml \
+ --asr_model_file /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/29epoch.pth \
+ --wavdir /usr/local/corpus/4th_biz/es/wav/ --txtdir /usr/local/corpus/4th_biz/es/txt/ --output /usr/local/corpus/4th_biz/es/segments/ --ngpu 1 --lang es
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/config.yaml \
+ --asr_model_file /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/29epoch.pth \
+ --wavdir /usr/local/corpus/4th_biz/fr/wav/ --txtdir /usr/local/corpus/4th_biz/fr/txt/ --output /usr/local/corpus/4th_biz/fr/segments/ --ngpu 1 --lang fr
+
+python scripts/align.py \
+ --asr_train_config /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/config.yaml \
+ --asr_model_file /root/.cache/espnet/a08c8578c2074b6848d7b7130d62073b/exp/asr_transformer/29epoch.pth \
+ --wavdir /usr/local/corpus/4th_biz/pt/wav/ --txtdir /usr/local/corpus/4th_biz/pt/txt/ --output /usr/local/corpus/4th_biz/pt/segments/ --ngpu 1 --lang pt
 
 
 cd segments/th/
