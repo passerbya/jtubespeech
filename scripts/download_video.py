@@ -35,11 +35,11 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
 
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
     fn = {}
-    for k in ["wav", "wav16k", "vtt", "txt"]:
+    for k in ["wav", "wav_org", "vtt", "txt"]:
       fn[k] = Path(outdir) / lang / k / (make_basename(videoid) + "." + k[:3])
       fn[k].parent.mkdir(parents=True, exist_ok=True)
 
-    if not fn["wav16k"].exists() or not fn["txt"].exists():
+    if not fn["wav_org"].exists() or not fn["txt"].exists():
       print(videoid)
 
       # download
@@ -69,7 +69,8 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
 
       # wav -> wav16k (resampling to 16kHz, 1ch)
       try:
-        subprocess.run("ffmpeg -i {} -ar 16000 -ac 1 -sample_fmt s16 -y {}".format(fn["wav"], fn["wav16k"]), shell=True,universal_newlines=True)
+        #subprocess.run("ffmpeg -i {} -ar 16000 -ac 1 -sample_fmt s16 -y {}".format(fn["wav"], fn["wav16k"]), shell=True,universal_newlines=True)
+        shutil.move(fn["wav"], fn["wav_org"])
         '''
         wav = pydub.AudioSegment.from_file(fn["wav"], format = "wav")
         wav = pydub.effects.normalize(wav, 5.0).set_frame_rate(16000).set_channels(1)
@@ -80,8 +81,8 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
         continue
 
       # remove original wav
-      if not keep_org:
-        fn["wav"].unlink()
+      #if not keep_org:
+      #  fn["wav"].unlink()
 
       # wait
       if wait_sec > 0.01:

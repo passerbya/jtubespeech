@@ -224,7 +224,7 @@ def main():
                 lang = 'hi'
             elif lang_dir.name.startswith('越'):
                 lang = 'vi'
-            wav_path = dest / lang / 'wav16k' / md5[0:2] / (md5 + '.wav')
+            wav_path = dest / lang / 'wav24k' / md5[0:2] / (md5 + '.wav')
             txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
             if is_bilingual:
                 line0 = ''
@@ -281,6 +281,51 @@ def main():
     with open(dest/'stat.csv', "wb") as f:
         f.write('\r\n'.join([x[1] for x in csv_lines]).encode('utf-8'))
 
+def to_wav_org():
+    for lang_dir in src.glob("*"):
+        if not lang_dir.is_dir():
+            continue
+        for srt in lang_dir.glob("**/*.srt"):
+            wav = srt.parent / (srt.stem + '.wav')
+            md5 = md5sum(srt)
+            print(srt)
+            if lang_dir.name.startswith('中'):
+                lang = 'zh'
+            elif lang_dir.name.startswith('日'):
+                lang = 'ja'
+            elif lang_dir.name.startswith('英'):
+                lang = 'en'
+            elif lang_dir.name.startswith('阿'):
+                lang = 'ar'
+            elif lang_dir.name.startswith('德'):
+                lang = 'de'
+            elif lang_dir.name.startswith('俄'):
+                lang = 'ru'
+            elif lang_dir.name.startswith('法'):
+                lang = 'fr'
+            elif lang_dir.name.startswith('韩'):
+                lang = 'ko'
+            elif lang_dir.name.startswith('葡'):
+                lang = 'pt'
+            elif lang_dir.name.startswith('泰'):
+                lang = 'th'
+            elif lang_dir.name.startswith('西'):
+                lang = 'es'
+            elif lang_dir.name.startswith('印地'):
+                lang = 'hi'
+            elif lang_dir.name.startswith('越'):
+                lang = 'vi'
+            wav_path = dest / lang / 'wav_org' / md5[0:2] / (md5 + '.wav')
+            if wav_path.exists():
+                continue
+            if not wav_path.parent.exists():
+                wav_path.parent.mkdir(parents=True)
+            if wav_path.exists():
+                os.remove(str(wav_path))
+            shutil.copy(str(wav), str(wav_path))
+            print(wav_path, 'ok')
+    print('done')
+
 if __name__ == "__main__":
     '''
     subs, is_bilingual = read_srt_sub('Z:/38语料/语料盘/语料/第四批语料/英译中/21050011_IYUNO-SDI_系列视频翻译0506/Handy Manny61.srt')
@@ -301,3 +346,4 @@ if __name__ == "__main__":
     if not dest.exists():
         dest.mkdir()
     main()
+    #to_wav_org()

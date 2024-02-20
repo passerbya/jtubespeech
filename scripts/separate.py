@@ -31,11 +31,12 @@ class TaskThread(threading.Thread):
         while not self.queue_obj.empty():
             (cmd, outdir, wav_dest, wav_src) = self.queue_obj.get()
             print(cmd)
+
             demucs.separate.main(["-d", f"cuda:{self.cuda_num}", "-n", "htdemucs_ft", "--two-stems", "vocals", "-o", str(outdir), wav_src])
             ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
             temp_path = outdir / 'htdemucs_ft' / wav_dest.stem / 'vocals.wav'
-            cmd = f'{ffmpeg_exe} -i "{temp_path}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{wav_dest}"'
-            subprocess.check_output(cmd, shell=True).decode('utf-8', 'ignore')
+            cmd = f'{ffmpeg_exe} -i "{temp_path}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{wav_dest}"'
+            subprocess.check_output(cmd, shell=True)
             try:
                 delete_folder(outdir / 'htdemucs_ft' / wav_dest.stem)
             except:
@@ -60,7 +61,7 @@ def main():
             if not wav_dest.parent.exists():
                 wav_dest.parent.mkdir(parents=True)
             outdir = src / 'temp'
-            wav_src = str(srt).replace('/txt/', '/wav16k/').replace('.txt', '.wav')
+            wav_src = str(srt).replace('/txt/', '/wav_org/').replace('.txt', '.wav')
             cmd = f"source /etc/profile && /root/miniconda3/bin/demucs -d cuda:{i % thread_count} -n htdemucs_ft --two-stems=vocals -o {outdir} {wav_src}"
             ts[i % thread_count].add_data(cmd, outdir, wav_dest, wav_src)
             i += 1
@@ -70,6 +71,6 @@ def main():
         ts[i].start()
 
 if __name__ == "__main__":
-    src = Path('/usr/local/corpus/jtubespeech/th')
+    src = Path('/usr/local/corpus/4th_biz/zh')
     main()
 

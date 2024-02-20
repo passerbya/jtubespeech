@@ -36,29 +36,29 @@ def main():
             else:
                 txt_file.unlink()
 
-        wav16k_file_real = src / 'wav16k' / txt_file.stem[0:2] / (txt_file.stem + '.wav')
-        if not wav16k_file_real.exists():
-            print('no wav', wav16k_file_real)
+        wav24k_file_real = src / 'wav24k' / txt_file.stem[0:2] / (txt_file.stem + '.wav')
+        if not wav24k_file_real.exists():
+            print('no wav', wav24k_file_real)
 
-    for wav16k_file in (src / 'wav16k').glob("**/*.wav"):
-        wav16_dir = wav16k_file.parent
-        wav_dir_real = src / 'wav' / wav16k_file.stem[0:2]
+    for wav24k_file in (src / 'wav24k').glob("**/*.wav"):
+        wav16_dir = wav24k_file.parent
+        wav_dir_real = src / 'wav' / wav24k_file.stem[0:2]
         if not wav_dir_real.exists():
             wav_dir_real.mkdir()
             print('mkdir', wav_dir_real)
-        if wav16k_file.stem[0:2] != wav16_dir.name:
-            wav16k_dir_real = src / 'wav16k' / wav16k_file.stem[0:2]
-            if not wav16k_dir_real.exists():
-                wav16k_dir_real.mkdir()
-                print('mkdir', wav16k_dir_real)
-            wav16k_file_real = wav16k_dir_real / wav16k_file.name
-            if not wav16k_file_real.exists():
-                wav16k_file.rename(wav16k_file_real)
-                print('rename', wav16k_file_real)
+        if wav24k_file.stem[0:2] != wav16_dir.name:
+            wav24k_dir_real = src / 'wav24k' / wav24k_file.stem[0:2]
+            if not wav24k_dir_real.exists():
+                wav24k_dir_real.mkdir()
+                print('mkdir', wav24k_dir_real)
+            wav24k_file_real = wav24k_dir_real / wav24k_file.name
+            if not wav24k_file_real.exists():
+                wav24k_file.rename(wav24k_file_real)
+                print('rename', wav24k_file_real)
             else:
-                wav16k_file.unlink()
+                wav24k_file.unlink()
 
-        txt_file_real = src / 'txt' / wav16k_file.stem[0:2] / (wav16k_file.stem + '.txt')
+        txt_file_real = src / 'txt' / wav24k_file.stem[0:2] / (wav24k_file.stem + '.txt')
         if not txt_file_real.exists():
             print('no txt', txt_file_real)
 

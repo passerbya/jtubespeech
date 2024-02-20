@@ -79,7 +79,7 @@ def text_processing(utt_txt, _lang):
 def get_partitions(
     t: int = 100000,
     max_len_s: float = 1280.0,
-    fs: int = 16000,
+    fs: int = 24000,
     samples_to_frames_ratio=512,
     overlap: int = 0,
 ):
@@ -286,7 +286,7 @@ def align(
     aligner = CTCSegmentation(
         **model, **kwargs, kaldi_style_text=True
     )
-    fs = 16000
+    fs = 24000
     logging.info(
         f"Zero cost transitions (gratis_blank) set to"
         f" {aligner.config.blank_transition_cost_zero}."
@@ -583,7 +583,7 @@ def get_parser():
     group.add_argument(
         "--fs",
         type=int,
-        default=16000,
+        default=24000,
         help="Sampling Frequency."
         " The sampling frequency (in Hz) is needed to correctly determine the"
         " starting and ending time of aligned segments.",

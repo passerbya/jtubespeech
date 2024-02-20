@@ -21,15 +21,15 @@ class TaskThread(threading.Thread):
     def run(self):
         while not self.queue_obj.empty():
             (_cmd, _srt, _spath) = self.queue_obj.get()
-            subprocess.check_output(_cmd, shell=True).decode('utf-8', 'ignore')
+            subprocess.check_output(_cmd, shell=True)
             print(_cmd)
             print('run', self.queue_obj.qsize())
             shutil.copy(_srt, _spath)
 
 if __name__ == "__main__":
-    src = Path('D:/语料/第四批语料')
-    dest = Path('E:/语料/第四批语料')
-    ffmpeg_exe = 'E:/win/ffmpeg.exe'
+    src = Path('/usr/local/corpus/4th_orig')
+    dest = Path('/usr/local/corpus/4th_wav')
+    ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
     threadCount = 20
     ts = []
     for i in range(threadCount):
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         spath = d / (srt.stem + ".srt")
         if apath.exists() and spath.exists():
             continue
-        cmd = f'{ffmpeg_exe} -analyzeduration 2147483647 -probesize 2147483647 -i "{vpath}" -max_muxing_queue_size 9999 -map_metadata -1 -map_chapters -1 -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{apath}"'
+        cmd = f'{ffmpeg_exe} -i "{vpath}" -vn -ac 1 -sample_fmt s16 -y "{apath}"'
         ts[i % threadCount].add_data(cmd, srt, spath)
         i += 1
     print('-'*20, i)
