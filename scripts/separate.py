@@ -32,7 +32,7 @@ class TaskThread(threading.Thread):
             (cmd, outdir, wav_dest, wav_src) = self.queue_obj.get()
             print(cmd)
 
-            demucs.separate.main(["-d", f"cuda:{self.cuda_num}", "-n", "htdemucs_ft", "--two-stems", "vocals", "-o", str(outdir), wav_src])
+            demucs.separate.main(["-d", f"cuda:{self.cuda_num}", "-n", "htdemucs_ft", "--shifts", "4", "--two-stems", "vocals", "-o", str(outdir), wav_src])
             ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
             temp_path = outdir / 'htdemucs_ft' / wav_dest.stem / 'vocals.wav'
             cmd = f'{ffmpeg_exe} -i "{temp_path}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{wav_dest}"'
@@ -62,7 +62,7 @@ def main():
                 wav_dest.parent.mkdir(parents=True)
             outdir = src / 'temp'
             wav_src = str(srt).replace('/txt/', '/wav_org/').replace('.txt', '.wav')
-            cmd = f"source /etc/profile && /root/miniconda3/bin/demucs -d cuda:{i % thread_count} -n htdemucs_ft --two-stems=vocals -o {outdir} {wav_src}"
+            cmd = f"source /etc/profile && /root/miniconda3/bin/demucs -d cuda:{i % thread_count} -n htdemucs_ft --shifts=4 -o {outdir} {wav_src}"
             ts[i % thread_count].add_data(cmd, outdir, wav_dest, wav_src)
             i += 1
 
