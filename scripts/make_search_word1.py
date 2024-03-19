@@ -35,7 +35,6 @@ def make_search_word(wikidict, lang, outdir="word"):
     for line in requests.get(wikidict).content.splitlines():
         data = json.loads(line.strip())
         i += 1
-        print(data['word'], i)
         if data['word'] not in word_set:
             words.append(data['word'])
             word_set.add(data['word'])

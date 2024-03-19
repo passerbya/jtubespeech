@@ -56,7 +56,7 @@ def text_processing(utt_txt, _lang):
         utt_txt: Normalized
     """
     # replace some special characters
-    utt_txt = utt_txt.replace('"', "").replace(",", "")
+    utt_txt = utt_txt.replace('"', "")
     if _lang in normalizer_map:
         normalizer = normalizer_map[_lang]
     else:
@@ -359,18 +359,18 @@ def align(
         with open(txt) as f:
             utterance_list = f.readlines()
         utterance_list = [
-            item.replace("\t", " ").replace("\n", "") for item in utterance_list
+            item.replace("\n", "") for item in utterance_list
         ]
         overlap_keys = set()
         for i1, utt1 in enumerate(utterance_list):
-            utt_start1, utt_end1, _ = utt1.split(" ", 2)
+            utt_start1, utt_end1, _ = utt1.split("\t", 2)
             key = f'{utt_start1}_{utt_end1}'
             utt_start1 = float(utt_start1)
             utt_end1 = float(utt_end1)
             for i2, utt2 in enumerate(utterance_list):
                 if i1 == i2:
                     continue
-                utt_start2, utt_end2, _ = utt2.split(" ", 2)
+                utt_start2, utt_end2, _ = utt2.split("\t", 2)
                 utt_start2 = float(utt_start2)
                 utt_end2 = float(utt_end2)
                 if max(utt_start1, utt_start2) < min(utt_end1, utt_end2):
@@ -383,7 +383,7 @@ def align(
         for i, utt in enumerate(utterance_list):
             if f"{stem}_{i:04}" in seg_list:
                 continue
-            utt_start, utt_end, utt_txt = utt.split(" ", 2)
+            utt_start, utt_end, utt_txt = utt.split("\t", 2)
             key = f'{utt_start}_{utt_end}'
             if float(utt_end) - float(utt_start) <= 0 or key in overlap_keys:
                 continue
