@@ -224,7 +224,7 @@ def main():
                 lang = 'hi'
             elif lang_dir.name.startswith('越'):
                 lang = 'vi'
-            wav_path = dest / lang / 'wav24k' / md5[0:2] / (md5 + '.wav')
+            wav_path = dest / lang / 'wav_org' / md5[0:2] / (md5 + '.wav')
             txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
             if is_bilingual:
                 line0 = ''

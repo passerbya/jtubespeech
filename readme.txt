@@ -13,7 +13,7 @@ pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --e
 pip install torch-complex --extra-index-url https://download.pytorch.org/whl/cu117
 apt install gcc g++
 apt-get install ffmpeg
-pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea
+pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation soundfile transformers
 
 
 
