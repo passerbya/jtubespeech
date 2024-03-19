@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 
-import regex
 import argparse
-import logging
-import sys
 import time
-from typing import Union
 import torch
 import numpy as np
 
@@ -16,16 +12,13 @@ import soundfile
 import ctc_segmentation
 import pykakasi
 from transformers import AutoProcessor, Wav2Vec2ForCTC, Wav2Vec2Processor, Wav2Vec2CTCTokenizer
-
-# Language specific imports - japanese
 from tts_norm.normalizer import Normalizer
-import re
 
 normalizer_map = {}
 ffmpegExe = "/usr/local/ffmpeg/bin/ffmpeg"
 ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
+
 def text_processing(utt_txt, _lang):
-    # replace some special characters
     utt_txt = utt_txt.replace('"', "")
     if _lang in normalizer_map:
         normalizer = normalizer_map[_lang]
@@ -37,21 +30,12 @@ def text_processing(utt_txt, _lang):
 
 def find_files(wavdir, txtdir):
     files_dict = {}
-    dir_txt_list = list(txtdir.glob("**/*.txt"))
+    txt_dict = {}
+    for item in txtdir.glob("**/*.txt"):
+        txt_dict[item.stem] = item
     for wav in wavdir.glob("**/*.wav"):
-        stem = wav.stem
-        txt = None
-        for item in dir_txt_list:
-            if item.stem == stem:
-                if txt is not None:
-                    raise ValueError(f"Duplicate found: {stem}")
-                txt = item
-        if txt is None:
-            logging.error(f"No text found for {stem}.wav")
-        else:
-            files_dict[stem] = (wav, txt)
+        files_dict[wav.stem] = (wav, txt_dict[wav.stem])
     return files_dict
-
 
 def format_times(ts):
     ts = ts / 1000
@@ -106,7 +90,6 @@ def align(
     model = Wav2Vec2ForCTC.from_pretrained(model_name).to(device)
     print('load done')
 
-    # make sure that output is a path!
     segment_file = output / "segments.trans.tsv"
     if segment_file.exists():
         with open(segment_file) as f:
@@ -123,10 +106,8 @@ def align(
     print(f"Found {num_files} files.")
 
     # Align
-    count_files = 0
     skip_duration = 0
     for stem in files_dict.keys():
-        count_files += 1
         (wav, txt) = files_dict[stem]
         # generate kaldi-style `text`
         with open(txt) as f:
@@ -148,10 +129,9 @@ def align(
                 utt_end2 = float(utt_end2)
                 if max(utt_start1, utt_start2) < min(utt_end1, utt_end2):
                     skip_duration += utt_end1 - utt_start1
-                    #print(stem, utt1, utt2, format_times(int(skip_duration*1000)))
                     overlap_keys.add(key)
                     break
-        print(f"{stem}, skip {len(overlap_keys)} records.")
+        print(f"{stem}, skip {skip_duration}s, {len(overlap_keys)} records.")
         unm_transcripts = []
         transcripts = []
         timestamps = []
@@ -168,7 +148,8 @@ def align(
             # text processing
             cleaned, unnormalize = text_processing(utt_txt, lang)
             if unnormalize:
-                print(f"{stem}, unnormalize {txt} {utt}.")
+                skip_duration += utt_end - utt_start
+                print(f"{stem}, skip {skip_duration}s, unnormalize {utt_txt} {cleaned}.")
                 continue
             if lang == 'ja':
                 result = kks.convert(cleaned)
@@ -283,11 +264,6 @@ def align(
                 for i, transcript in enumerate(transcripts_slice):
                     assert len(transcript) > 0
                     tok_ids = tokenizer(transcript.replace("\n"," ").lower())['input_ids']
-                    '''
-                    for j, tok_id in enumerate(tok_ids):
-                        if tok_id == unk_id:
-                            print(transcript, unk_id, transcript[j])
-                    '''
                     tok_ids = np.array(tok_ids,dtype=np.int64)
                     know_ids = tok_ids[tok_ids != unk_id]
                     if len(know_ids) != 0:
@@ -319,7 +295,6 @@ def align(
                     diff2 = abs(utt_end - etime)
                     if diff1 > 2 or diff2 > 2:
                         print("large deviation", diff1, diff2, t)
-                        pass
                     else:
                         accuracy += 1
                         subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], t))
@@ -331,26 +306,25 @@ def align(
             if end >= len(timestamps):
                 break
         if accuracy/total < 0.7:
-            print(stem, accuracy/total)
-            continue
-        with open(segment_file,'a',encoding='utf-8') as f:
-            for sub in subs:
-                rec_id = sub[0]
-                opath = output / rec_id[0:2] / (rec_id + '.wav')
-                if not opath.parent.exists():
-                    opath.parent.mkdir()
-                cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
-                subprocess.check_output(cut_cmd, shell=True)
-                line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0'
-                f.write(line)
-                f.flush()
+            print('skip:', stem, accuracy/total)
+        else:
+            with open(segment_file,'a',encoding='utf-8') as f:
+                for sub in subs:
+                    rec_id = sub[0]
+                    opath = output / rec_id[0:2] / (rec_id + '.wav')
+                    if not opath.parent.exists():
+                        opath.parent.mkdir()
+                    cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
+                    subprocess.check_output(cut_cmd, shell=True)
+                    line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0'
+                    f.write(line)
+                    f.flush()
 
         print('accuracy:', stem, accuracy/total)
 
-    print("align down.")
+    print("align done.")
 
 def get_parser():
-    """Obtain an argument-parser for the script interface."""
     parser = argparse.ArgumentParser(description="CTC segmentation")
 
     parser.add_argument(
@@ -389,7 +363,6 @@ def get_parser():
 
 
 def main(cmd=None):
-    """Parse arguments and start."""
     parser = get_parser()
     args = parser.parse_args(cmd)
     kwargs = vars(args)
