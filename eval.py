@@ -9,8 +9,7 @@ import pykakasi
 
 #conda create -n ctc_segmentation python=3.9
 
-#pip install ctc-segmentation soundfile transformers
-#pip torch torchvision torchaudio
+#pip install ctc-segmentation soundfile transformers pykakasi
 #pip install torch==1.13.1 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 
 # load model, processor and tokenizer
@@ -121,9 +120,9 @@ tokenizer = processor.tokenizer
 #accuracy: 0.8549019607843137 std:0.02180983048823488
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xls-r-300m-ar"
 #accuracy: 0.8607843137254902 std:0.02144793612842601
-#model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-arabic"
+model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-arabic"
 #accuracy: 0.8568627450980392 std:0.02422192277718887
-#lang = 'ar'
+lang = 'ar'
 
 print('loading ...')
 processor = Wav2Vec2Processor.from_pretrained(model_name)
@@ -147,7 +146,7 @@ def align_with_transcript(md5):
     for utt in utterance_list:
         utt_start, utt_end, utt_txt = utt.split("\t", 2)
         utt_txt = utt_txt.replace("\n", "").replace('"', "")
-        utt_txt, _ = normalizer.normalize(utt_txt)
+        utt_txt, _, _ = normalizer.normalize(utt_txt)
         '''
         result = kks.convert(utt_txt)
         if result is not None and len(result) >0:

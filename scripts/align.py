@@ -4,6 +4,7 @@ import argparse
 import time
 import torch
 import numpy as np
+import shutil
 
 from pathlib import Path
 import tempfile
@@ -19,7 +20,6 @@ ffmpegExe = "/usr/local/ffmpeg/bin/ffmpeg"
 ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
 
 def text_processing(utt_txt, _lang):
-    utt_txt = utt_txt.replace('"', "")
     if _lang in normalizer_map:
         normalizer = normalizer_map[_lang]
     else:
@@ -34,6 +34,8 @@ def find_files(wavdir, txtdir):
     for item in txtdir.glob("**/*.txt"):
         txt_dict[item.stem] = item
     for wav in wavdir.glob("**/*.wav"):
+        if wav.stem.endswith('_16k') or wav.stem.endswith('_24k'):
+            continue
         files_dict[wav.stem] = (wav, txt_dict[wav.stem])
     return files_dict
 
@@ -146,9 +148,10 @@ def align(
             if float(utt_end) <= float(utt_start) or key in overlap_keys:
                 continue
             # text processing
+            utt_txt = utt_txt.replace('"', "")
             cleaned, unnormalize = text_processing(utt_txt, lang)
             if unnormalize:
-                skip_duration += utt_end - utt_start
+                skip_duration += float(utt_end) - float(utt_start)
                 print(f"{stem}, skip {skip_duration}s, unnormalize {utt_txt} {cleaned}.")
                 continue
             if lang == 'ja':
@@ -165,7 +168,7 @@ def align(
                     spell = text
                 transcripts.append(spell)
             else:
-                transcripts(cleaned)
+                transcripts.append(cleaned)
             unm_transcripts.append(utt_txt)
             rec_ids.append(rec_id)
             timestamps.append((float(utt_start), float(utt_end)))
@@ -179,13 +182,13 @@ def align(
                 temp_path = Path(temp_dir_path) / (wav.stem+'_16k.wav')
                 cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
                 subprocess.check_output(cmd, shell=True)
-                temp_path.rename(wav16k)
+                shutil.move(temp_path, wav16k)
         if not wav24k.exists():
             with tempfile.TemporaryDirectory() as temp_dir_path:
                 temp_path = Path(temp_dir_path) / (wav.stem+'_24k.wav')
                 cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
                 subprocess.check_output(cmd, shell=True)
-                temp_path.rename(wav24k)
+                shutil.move(temp_path, wav24k)
         audio, sample_rate = soundfile.read(wav16k)
         vocab = tokenizer.get_vocab()
         inv_vocab = {v:k for k,v in vocab.items()}
@@ -283,18 +286,20 @@ def align(
                 for i, t, p in zip(indexes, texts, segments):
                     if i < offset:
                         continue
+                    utt_start, utt_end = timestamp_slice[i]
                     stime = p[0] + start_time
                     etime = p[1] + start_time
                     if p[2] > 1.5:
                         total += 1
-                        print("low score", {"start": stime, "end": etime, "conf": p[2], "text": t})
+                        skip_duration += utt_end - utt_start
+                        print("low score", f'{stem}, skip {skip_duration}s', {"start": stime, "end": etime, "conf": p[2], "text": t})
                         continue
                     total += 1
-                    utt_start, utt_end = timestamp_slice[i]
                     diff1 = abs(utt_start - stime)
                     diff2 = abs(utt_end - etime)
                     if diff1 > 2 or diff2 > 2:
-                        print("large deviation", diff1, diff2, t)
+                        skip_duration += utt_end - utt_start
+                        print("large deviation", f'{stem}, skip {skip_duration}s', diff1, diff2, t)
                     else:
                         accuracy += 1
                         subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], t))
@@ -316,7 +321,7 @@ def align(
                         opath.parent.mkdir()
                     cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
                     subprocess.check_output(cut_cmd, shell=True)
-                    line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0'
+                    line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
                     f.write(line)
                     f.flush()
 
