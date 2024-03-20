@@ -313,14 +313,17 @@ def align(
         if accuracy/total < 0.7:
             print('skip:', stem, accuracy/total)
         else:
+            for sub in subs:
+                rec_id = sub[0]
+                opath = output / rec_id[0:2] / (rec_id + '.wav')
+                if not opath.parent.exists():
+                    opath.parent.mkdir()
+                cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
+                subprocess.check_output(cut_cmd, shell=True)
+
             with open(segment_file,'a',encoding='utf-8') as f:
                 for sub in subs:
                     rec_id = sub[0]
-                    opath = output / rec_id[0:2] / (rec_id + '.wav')
-                    if not opath.parent.exists():
-                        opath.parent.mkdir()
-                    cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
-                    subprocess.check_output(cut_cmd, shell=True)
                     line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
                     f.write(line)
                     f.flush()
