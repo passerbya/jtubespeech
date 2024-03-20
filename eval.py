@@ -222,6 +222,7 @@ def align_with_transcript(md5):
             end_idx = int(end_time * sample_rate)
             if start_idx < 0:
                 start_idx = 0
+                start_time = 0
             if end_idx > len(audio):
                 end_idx = len(audio)
             audio_slice = audio[start_idx:end_idx]
