@@ -334,35 +334,24 @@ def align(
 
 def get_parser():
     parser = argparse.ArgumentParser(description="CTC segmentation")
-
     parser.add_argument(
-        "--fs",
-        type=int,
-        default=24000,
-        help="Sampling Frequency."
-        " The sampling frequency (in Hz) is needed to correctly determine the"
-        " starting and ending time of aligned segments.",
-    )
-
-    group = parser.add_argument_group("Input/output arguments")
-    group.add_argument(
         "--wavdir",
         type=Path,
         required=True,
         help="WAV folder.",
     )
-    group.add_argument(
+    parser.add_argument(
         "--txtdir",
         type=Path,
         required=True,
         help="Text files folder.",
     )
-    group.add_argument(
+    parser.add_argument(
         "--output",
         type=Path,
         help="Output segments directory.",
     )
-    group.add_argument(
+    parser.add_argument(
         "--lang",
         default='en',
         type=str,
