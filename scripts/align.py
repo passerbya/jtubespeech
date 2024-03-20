@@ -271,7 +271,7 @@ def align(
                     tok_ids = np.array(tok_ids,dtype=np.int64)
                     know_ids = tok_ids[tok_ids != unk_id]
                     if len(know_ids) != 0:
-                        tokens.append(tok_ids[tok_ids != unk_id])
+                        tokens.append(know_ids)
                         texts.append(transcript)
                         indexes.append(i)
 
