@@ -120,9 +120,12 @@ tokenizer = processor.tokenizer
 #accuracy: 0.8549019607843137 std:0.02180983048823488
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xls-r-300m-ar"
 #accuracy: 0.8607843137254902 std:0.02144793612842601
-model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-arabic"
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-arabic"
 #accuracy: 0.8568627450980392 std:0.02422192277718887
-lang = 'ar'
+#lang = 'ar'
+
+model_name = "/usr/local/data/wav2vec2/wav2vec2-xlsr-multilingual-56"
+lang = 'zh'
 
 print('loading ...')
 processor = Wav2Vec2Processor.from_pretrained(model_name)
