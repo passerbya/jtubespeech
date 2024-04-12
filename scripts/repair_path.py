@@ -66,5 +66,5 @@ def main():
         f.write(format_times(lang_stat).encode('utf-8'))
 
 if __name__ == "__main__":
-    src = Path('/usr/local/corpus/jtubespeech/th')
+    src = Path('/usr/local/corpus/jtubespeech/video/th')
     main()

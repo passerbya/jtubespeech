@@ -88,6 +88,6 @@ def main():
         ts[i].start()
 
 if __name__ == "__main__":
-    src = Path('/usr/local/corpus/4th_biz/zh')
+    src = Path('/usr/local/corpus/4th_biz/en')
     main()
 

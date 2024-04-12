@@ -92,6 +92,8 @@ def align(
     model = Wav2Vec2ForCTC.from_pretrained(model_name).to(device)
     print('load done')
 
+    if not output:
+        output.mkdir()
     segment_file = output / "segments.trans.tsv"
     if segment_file.exists():
         with open(segment_file) as f:
@@ -136,6 +138,7 @@ def align(
         print(f"{stem}, skip {skip_duration}s, {len(overlap_keys)} records.")
         unm_transcripts = []
         transcripts = []
+        cleaned_texts = []
         timestamps = []
         rec_ids = []
         kks = pykakasi.kakasi()
@@ -169,6 +172,7 @@ def align(
                 transcripts.append(spell)
             else:
                 transcripts.append(cleaned)
+            cleaned_texts.append(cleaned)
             unm_transcripts.append(utt_txt)
             rec_ids.append(rec_id)
             timestamps.append((float(utt_start), float(utt_end)))
@@ -241,6 +245,7 @@ def align(
 
                 timestamp_slice = timestamps[start:end]
                 transcripts_slice = transcripts[start:end]
+                cleaned_texts_slice = cleaned_texts[start:end]
                 unm_transcripts_slice = unm_transcripts[start:end]
                 rec_ids_slice = rec_ids[start:end]
                 start_time -= 0.1
@@ -303,7 +308,7 @@ def align(
                         print("large deviation", f'{stem}, skip {skip_duration}s', diff1, diff2, t)
                     else:
                         accuracy += 1
-                        subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], t))
+                        subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
             except Exception:
                 print(unm_transcripts_slice, timestamp_slice)
                 import traceback

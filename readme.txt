@@ -25,6 +25,7 @@ https://github.com/ytdl-org/ytdl-nightly/releases/tag/2023.09.25
 2）从维基词典下载youtube搜索词条，https://kaikki.org/dictionary/
 python scripts/make_search_word1.py https://kaikki.org/dictionary/Indonesian/kaikki.org-dictionary-Indonesian.json id
 python scripts/make_search_word1.py https://kaikki.org/dictionary/Korean/kaikki.org-dictionary-Korean.json ko
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Persian/kaikki.org-dictionary-Persian.json fa
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
