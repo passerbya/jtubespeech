@@ -210,6 +210,7 @@ def align(
         total = 0
         accuracy = 0
         subs = []
+        offset_second = 0.1
         while True:
             try:
                 start_time = timestamps[start][0]
@@ -248,8 +249,8 @@ def align(
                 cleaned_texts_slice = cleaned_texts[start:end]
                 unm_transcripts_slice = unm_transcripts[start:end]
                 rec_ids_slice = rec_ids[start:end]
-                start_time -= 0.5
-                end_time += 0.5
+                start_time -= offset_second
+                end_time += offset_second
                 #print(start, end, end_time - start_time)
                 start_idx = int(start_time * sample_rate)
                 end_idx = int(end_time * sample_rate)
@@ -309,6 +310,9 @@ def align(
                     else:
                         accuracy += 1
                         subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
+                offset_second = 0.1
+            except AssertionError:
+                offset_second = 0.5
             except Exception:
                 print(txt, unm_transcripts_slice, timestamp_slice)
                 import traceback
