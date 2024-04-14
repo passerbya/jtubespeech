@@ -336,7 +336,7 @@ def align(
                     f.write(line)
                     f.flush()
 
-        print('accuracy:', stem, accuracy/total)
+        print('accuracy:', stem, (accuracy/total if total!=0 else 0))
 
     print("align done.")
 
