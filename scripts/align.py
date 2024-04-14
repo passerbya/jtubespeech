@@ -310,13 +310,15 @@ def align(
                         accuracy += 1
                         subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
             except Exception:
-                print(unm_transcripts_slice, timestamp_slice)
+                print(txt, unm_transcripts_slice, timestamp_slice)
                 import traceback
                 traceback.print_exc()
             start = end
             if end >= len(timestamps):
                 break
-        if accuracy/total < 0.7:
+        if total == 0:
+            print('skip:', stem, accuracy, total)
+        elif accuracy/total < 0.7:
             print('skip:', stem, accuracy/total)
         else:
             for sub in subs:
