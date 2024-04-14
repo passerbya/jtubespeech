@@ -25,7 +25,7 @@ def main():
             seg_list = f.readlines()
         txts = {}
         for item in seg_list:
-            rec_id, _ = item.split('\t', 2)
+            rec_id, _ = item.split('\t', 1)
             md5 = rec_id[:rec_id.rfind('_')]
             txt_file = lang_dir / 'txt' / md5[0:2] / (md5 + '.txt')
             if txt_file not in txts:
