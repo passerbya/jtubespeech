@@ -59,7 +59,7 @@ def align(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     print('loading ...')
-    batch_size = 2
+    batch_size = 1
     if lang == 'zh':
         model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xlsr-53-chinese-zh-cn-gpt"
     elif lang == 'en':
@@ -248,8 +248,8 @@ def align(
                 cleaned_texts_slice = cleaned_texts[start:end]
                 unm_transcripts_slice = unm_transcripts[start:end]
                 rec_ids_slice = rec_ids[start:end]
-                start_time -= 0.1
-                end_time += 0.1
+                start_time -= 0.5
+                end_time += 0.5
                 #print(start, end, end_time - start_time)
                 start_idx = int(start_time * sample_rate)
                 end_idx = int(end_time * sample_rate)
