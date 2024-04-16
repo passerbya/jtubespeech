@@ -14,7 +14,7 @@ pip install torch-complex --extra-index-url https://download.pytorch.org/whl/cu1
 apt install gcc g++
 apt-get install ffmpeg
 pip install pathlib espnet espnet_model_zoo soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation soundfile transformers
-
+pip install pyarrow fastparquet
 
 
 1）youtube-dl异常
