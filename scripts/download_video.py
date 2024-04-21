@@ -1,3 +1,4 @@
+import os
 import time
 import argparse
 import sys
@@ -32,8 +33,16 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
   """
 
   sub = pd.read_csv(fn_sub)
+  downloaded_fn = f'videoid/bak/{lang}wiki-latest-pages-articles-multistream-index.txt'
+  downloaded_video_ids = set()
+  if os.path.exists(downloaded_fn):
+    with open(downloaded_fn, "r") as f:
+      downloaded_video_ids = set([line.strip() for line in f.readlines()])
 
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
+    if videoid in downloaded_video_ids:
+      print(videoid)
+      continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
       fn[k] = Path(outdir) / lang / k / (make_basename(videoid) + "." + k[:3])
