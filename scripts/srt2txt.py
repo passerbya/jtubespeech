@@ -161,7 +161,7 @@ def read_srt_sub(sub_file):
         subs = [sub for sub in subs if len(sub[2])==1]
     else:
         subs = [sub for sub in subs if len(sub[2])==2]
-    subs.sort(key=lambda x:x[0])
+    subs.sort(key=lambda x:(x[0],x[1]))
 
     return subs, line1 < line2
 
