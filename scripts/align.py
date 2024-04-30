@@ -5,6 +5,7 @@ import time
 import torch
 import numpy as np
 import shutil
+import regex
 
 from pathlib import Path
 import tempfile
@@ -109,6 +110,7 @@ def align(
     num_files = len(files_dict)
     print(f"Found {num_files} files.")
 
+    pattern_space = regex.compile(r'\s')
     # Align
     skip_duration = 0
     for stem in files_dict.keys():
@@ -116,9 +118,11 @@ def align(
         # generate kaldi-style `text`
         with open(txt) as f:
             utterance_list = f.readlines()
-        utterance_list = [
-            item.replace("\n", "") for item in utterance_list
-        ]
+        utterance_list = []
+        for txt in utterance_list:
+            txt = txt.replace("\n", "")
+            txt = pattern_space.sub(" ", txt)
+            utterance_list.append(txt)
         overlap_keys = set()
         for i1, utt1 in enumerate(utterance_list):
             utt_start1, utt_end1, _ = utt1.split("\t", 2)

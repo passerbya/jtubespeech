@@ -7,6 +7,7 @@ import chardet
 import codecs
 import langid
 import shutil
+import regex
 from pathlib import Path
 
 def is_chinese(content):
@@ -20,6 +21,8 @@ def is_japanese(content):
 def is_korean(content):
     mobj = re.search('[\uAC00-\uD7A3]+', content)
     return mobj is not None
+
+pattern_space = regex.compile(r'\s')
 
 def normalize_text(txt):
     #<i>Ulysses</i> as a story about a man
@@ -46,6 +49,7 @@ def normalize_text(txt):
     txt = re.sub(r'(?u)^\w+：', '', txt)
     txt = txt.replace('♪', '')
     txt = txt.replace('\h', '')
+    txt = pattern_space.sub(" ", txt)
 
     #?a love like ours is love that's hard to find?
     if txt.find("?") == 0:
