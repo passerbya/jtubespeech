@@ -117,12 +117,13 @@ def align(
         (wav, txt) = files_dict[stem]
         # generate kaldi-style `text`
         with open(txt) as f:
-            utterance_list = f.readlines()
+            lines = f.readlines()
         utterance_list = []
-        for txt in utterance_list:
-            txt = txt.replace("\n", "")
-            txt = pattern_space.sub(" ", txt)
-            utterance_list.append(txt)
+        for line in lines:
+            line = line.replace("\r", "")
+            line = line.replace("\n", "")
+            line = pattern_space.sub(" ", line)
+            utterance_list.append(line)
         overlap_keys = set()
         for i1, utt1 in enumerate(utterance_list):
             utt_start1, utt_end1, _ = utt1.split("\t", 2)
