@@ -55,7 +55,7 @@ def normalize_text(txt):
     if txt.find("?") == 0:
         txt = txt[1:]
 
-    return txt
+    return txt.strip()
 
 def parse_times(ts):
     #print ts

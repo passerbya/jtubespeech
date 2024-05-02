@@ -123,7 +123,7 @@ def align(
             line = line.replace("\r", "")
             line = line.replace("\n", "")
             line = pattern_space.sub(" ", line)
-            utterance_list.append(line)
+            utterance_list.append(line.strip())
         overlap_keys = set()
         for i1, utt1 in enumerate(utterance_list):
             utt_start1, utt_end1, _ = utt1.split("\t", 2)
@@ -340,6 +340,12 @@ def align(
 
             with open(segment_file,'a',encoding='utf-8') as f:
                 for sub in subs:
+                    if lang in ('zh', 'ja', 'th'):
+                        if len(sub[4]) <= 2:
+                            continue
+                    else:
+                        if sub[4].count(' ') <= 1:
+                            continue
                     rec_id = sub[0]
                     line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
                     f.write(line)
