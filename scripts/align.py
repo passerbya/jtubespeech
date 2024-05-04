@@ -120,9 +120,6 @@ def align(
             lines = f.readlines()
         utterance_list = []
         for line in lines:
-            line = line.replace("\r", "")
-            line = line.replace("\n", "")
-            line = pattern_space.sub(" ", line)
             utterance_list.append(line.strip())
         overlap_keys = set()
         for i1, utt1 in enumerate(utterance_list):
@@ -157,6 +154,7 @@ def align(
                 continue
             # text processing
             utt_txt = utt_txt.replace('"', "")
+            utt_txt = pattern_space.sub(" ", utt_txt)
             cleaned, unnormalize = text_processing(utt_txt, lang)
             if unnormalize:
                 skip_duration += float(utt_end) - float(utt_start)
@@ -190,13 +188,13 @@ def align(
             with tempfile.TemporaryDirectory() as temp_dir_path:
                 temp_path = Path(temp_dir_path) / (wav.stem+'_16k.wav')
                 cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
-                subprocess.check_output(cmd, shell=True)
+                subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
                 shutil.move(temp_path, wav16k)
         if not wav24k.exists():
             with tempfile.TemporaryDirectory() as temp_dir_path:
                 temp_path = Path(temp_dir_path) / (wav.stem+'_24k.wav')
                 cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
-                subprocess.check_output(cmd, shell=True)
+                subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
                 shutil.move(temp_path, wav24k)
         audio, sample_rate = soundfile.read(wav16k)
         vocab = tokenizer.get_vocab()
@@ -330,13 +328,14 @@ def align(
         elif accuracy/total < 0.7:
             print('skip:', stem, accuracy/total)
         else:
+            print('pass:', stem, accuracy/total)
             for sub in subs:
                 rec_id = sub[0]
                 opath = output / rec_id[0:2] / (rec_id + '.wav')
                 if not opath.parent.exists():
                     opath.parent.mkdir()
                 cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
-                subprocess.check_output(cut_cmd, shell=True)
+                subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
 
             with open(segment_file,'a',encoding='utf-8') as f:
                 for sub in subs:

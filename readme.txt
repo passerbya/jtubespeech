@@ -43,41 +43,41 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
 
 
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/zh/wav/ --txtdir /usr/local/corpus/4th_biz/zh/txt/ --output /usr/local/corpus/4th_biz/zh/segments/ --lang zh
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/en/wav/ --txtdir /usr/local/corpus/4th_biz/en/txt/ --output /usr/local/corpus/4th_biz/en/segments/ --lang en
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/ja/wav/ --txtdir /usr/local/corpus/4th_biz/ja/txt/ --output /usr/local/corpus/4th_biz/ja/segments/ --lang ja
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/ko/wav/ --txtdir /usr/local/corpus/4th_biz/ko/txt/ --output /usr/local/corpus/4th_biz/ko/segments/ --lang ko
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/th/wav/ --txtdir /usr/local/corpus/4th_biz/th/txt/ --output /usr/local/corpus/4th_biz/th/segments/ --lang th
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/ru/wav/ --txtdir /usr/local/corpus/4th_biz/ru/txt/ --output /usr/local/corpus/4th_biz/ru/segments/ --lang ru
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir video/vi/wav16k/ --txtdir video/vi/txt/ --output segments/vi/ --lang vi
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir video/th/wav16k/ --txtdir video/th/txt/ --output segments/th/ --lang th
 
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/de/wav/ --txtdir /usr/local/corpus/4th_biz/de/txt/ --output /usr/local/corpus/4th_biz/de/segments/ --lang de
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/es/wav/ --txtdir /usr/local/corpus/4th_biz/es/txt/ --output /usr/local/corpus/4th_biz/es/segments/ --lang es
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/fr/wav/ --txtdir /usr/local/corpus/4th_biz/fr/txt/ --output /usr/local/corpus/4th_biz/fr/segments/ --lang fr
 
-python scripts/align.py \
+python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/pt/wav/ --txtdir /usr/local/corpus/4th_biz/pt/txt/ --output /usr/local/corpus/4th_biz/pt/segments/ --lang pt
 
 
