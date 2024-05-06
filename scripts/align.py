@@ -111,6 +111,7 @@ def align(
     print(f"Found {num_files} files.")
 
     pattern_space = regex.compile(r'\s')
+    pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
     # Align
     skip_duration = 0
     for stem in files_dict.keys():
@@ -340,7 +341,8 @@ def align(
             with open(segment_file,'a',encoding='utf-8') as f:
                 for sub in subs:
                     if lang in ('zh', 'ja', 'th'):
-                        if len(sub[4]) <= 2:
+                        utt_txt = pattern_punctuation.sub("", sub[4])
+                        if len(utt_txt) <= 2:
                             continue
                     else:
                         if sub[4].count(' ') <= 1:
