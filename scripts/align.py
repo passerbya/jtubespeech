@@ -313,7 +313,15 @@ def align(
                         print("large deviation", f'{stem}, skip {skip_duration}s', diff1, diff2, t)
                     else:
                         accuracy += 1
-                        subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
+                        if utt_end - utt_start > 1.0:
+                            #去掉1秒以下，2个字或词以下的内容
+                            if lang in ('zh', 'ja', 'th'):
+                                utt_txt = pattern_punctuation.sub("", cleaned_texts_slice[i])
+                                if len(utt_txt) > 2:
+                                    subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
+                            else:
+                                if cleaned_texts_slice[i].count(' ') > 1:
+                                    subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
                 offset_second = 0.1
             except AssertionError:
                 offset_second = 0.5
@@ -340,13 +348,6 @@ def align(
 
             with open(segment_file,'a',encoding='utf-8') as f:
                 for sub in subs:
-                    if lang in ('zh', 'ja', 'th'):
-                        utt_txt = pattern_punctuation.sub("", sub[4])
-                        if len(utt_txt) <= 2:
-                            continue
-                    else:
-                        if sub[4].count(' ') <= 1:
-                            continue
                     rec_id = sub[0]
                     line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
                     f.write(line)
