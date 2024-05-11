@@ -31,9 +31,6 @@ def main():
             if txt_file not in txts:
                 with open(txt_file) as f:
                     utterance_list = f.readlines()
-                utterance_list = [
-                    item.replace("\n", "") for item in utterance_list
-                ]
                 txt = {}
                 for i, utt in enumerate(utterance_list):
                     utt_start, utt_end, _ = utt.split("\t", 2)

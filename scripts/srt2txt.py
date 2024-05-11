@@ -8,6 +8,7 @@ import codecs
 import langid
 import shutil
 import regex
+import subprocess
 from pathlib import Path
 
 def is_chinese(content):
@@ -200,7 +201,6 @@ def main():
         for srt in lang_dir.glob("**/*.srt"):
             wav = srt.parent / (srt.stem + '.wav')
             md5 = md5sum(srt)
-            print(srt)
             subs, is_bilingual = read_srt_sub(str(srt))
             if lang_dir.name.startswith('中'):
                 lang = 'zh'
@@ -241,8 +241,12 @@ def main():
                     line0 += lines[0] + '\n'
                     line1 += lines[1] + '\n'
                     new_subs.append(sub)
-                _lang0 = langid.classify(line0)[0]
-                _lang1 = langid.classify(line1)[0]
+                _lang0 = langid.classify(line0.lower())[0]
+                _lang1 = langid.classify(line1.lower())[0]
+                if _lang0=='an':
+                    _lang0='es'
+                if _lang1=='an':
+                    _lang1='es'
                 subs = new_subs
                 print(lang, _lang0, _lang1)
                 if lang == _lang0:
@@ -264,7 +268,7 @@ def main():
                     lang_stat[lang] += sub[1] - sub[0]
 
             if not has_txt:
-                print('-'*20, srt)
+                print('-'*20, md5, srt)
 
             if txt_path.exists() and wav_path.exists():
                 continue
@@ -278,12 +282,25 @@ def main():
             with open(txt_path, "wb") as f:
                 f.writelines([f"{t[0]/1000:1.3f}\t{t[1]/1000:1.3f}\t\"{' '.join(t[2])}\"\n".encode('utf-8') for t in subs])
             print(is_bilingual, txt_path, srt, 'ok')
+    '''
     csv_lines = [(float('inf'), 'lang,duration')]
     for lang in lang_stat:
         csv_lines.append((lang_stat[lang], f'{lang},{format_times(lang_stat[lang])}'))
     csv_lines.sort(key=lambda x:-x[0])
     with open(dest/'stat.csv', "wb") as f:
         f.write('\r\n'.join([x[1] for x in csv_lines]).encode('utf-8'))
+    '''
+
+ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
+ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
+def get_sample_rate(f):
+    analysis_cmd = '%s -v quiet -select_streams a -show_entries stream=sample_rate -of default=nokey=1:noprint_wrappers=1 -i "%s"' % (ffprobeExe, f)
+    try:
+        probe_out = subprocess.check_output(analysis_cmd, shell=True).decode('utf-8', 'ignore')
+        return probe_out.strip()
+    except Exception:
+        # logger.exception("")
+        return 0
 
 def to_wav_org():
     for lang_dir in src.glob("*"):
@@ -291,8 +308,10 @@ def to_wav_org():
             continue
         for srt in lang_dir.glob("**/*.srt"):
             wav = srt.parent / (srt.stem + '.wav')
+            sample_rate = get_sample_rate(str(wav))
+            if sample_rate!='16000':
+                continue
             md5 = md5sum(srt)
-            print(srt)
             if lang_dir.name.startswith('中'):
                 lang = 'zh'
             elif lang_dir.name.startswith('日'):
@@ -319,16 +338,71 @@ def to_wav_org():
                 lang = 'hi'
             elif lang_dir.name.startswith('越'):
                 lang = 'vi'
-            wav_path = dest / lang / 'wav_org' / md5[0:2] / (md5 + '.wav')
-            if wav_path.exists():
-                continue
-            if not wav_path.parent.exists():
-                wav_path.parent.mkdir(parents=True)
-            if wav_path.exists():
-                os.remove(str(wav_path))
-            shutil.copy(str(wav), str(wav_path))
-            print(wav_path, 'ok')
+            wav_org_path = dest / lang / 'wav_org' / md5[0:2] / (md5 + '.wav')
+            wav_path = dest / lang / 'wav' / md5[0:2] / (md5 + '.wav')
+            wav16_path = dest / lang / 'wav' / md5[0:2] / (md5 + '_16k.wav')
+            wav24_path = dest / lang / 'wav' / md5[0:2] / (md5 + '_24k.wav')
+            orig_path = Path(str(srt).replace('4th_wav', '4th_orig'))
+            vpath = None
+            for v in orig_path.parent.glob(orig_path.stem + '.*'):
+                if v.suffix == '.srt':
+                    continue
+                vpath = v
+                break
+            if vpath is None:
+                print(orig_path, orig_path.stem)
+            else:
+                sample_rate_v = get_sample_rate(str(vpath))
+                if sample_rate==sample_rate_v:
+                    continue
+                cmd = f'{ffmpeg_exe} -i "{vpath}" -vn -ac 1 -sample_fmt s16 -y "{wav}"'
+                print(cmd)
+                subprocess.run(cmd, shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                if not wav_org_path.exists():
+                    continue
+                shutil.copy(str(wav), str(wav_org_path))
+                if wav_path.exists():
+                    wav_path.unlink()
+                if wav16_path.exists():
+                    wav16_path.unlink()
+                if wav24_path.exists():
+                    wav24_path.unlink()
+                print(wav_org_path, 'ok')
     print('done')
+
+def get_duration(f):
+    analysis_cmd = '%s -v quiet -select_streams a -show_entries stream=duration -of default=nokey=1:noprint_wrappers=1 -i "%s"' % (ffprobeExe, f)
+    try:
+        probe_out = subprocess.check_output(analysis_cmd, shell=True).decode('utf-8', 'ignore')
+        return float(probe_out.strip())
+    except Exception:
+        # logger.exception("")
+        return 0
+
+def check_duration():
+    for lang_dir in dest.glob("*"):
+        if not lang_dir.is_dir():
+            continue
+        for txt in lang_dir.glob("**/*.txt"):
+            wav = txt.parent.parent.parent / 'wav' / txt.parent.name / (txt.stem + '.wav')
+            if not wav.exists():
+                continue
+            with open(txt) as f:
+                lines = f.readlines()
+            if len(lines) == 0:
+                print('-'*10, txt)
+            line = lines[-1].strip()
+            utt_start, utt_end, _ = line.split("\t", 2)
+            duration = get_duration(str(wav))
+            if duration < float(utt_end):
+                if float(utt_end) - duration <= 1.0:
+                    lines[-1] = lines[-1].replace(utt_end, f'{duration:1.3f}')
+                    #print(wav, duration, utt_end)
+                    #print(lines[-1])
+                    with open(txt, 'w') as f:
+                        f.writelines(lines)
+                else:
+                    print(wav, duration, utt_end)
 
 if __name__ == "__main__":
     '''
@@ -349,5 +423,6 @@ if __name__ == "__main__":
     dest = Path('/usr/local/corpus/4th_biz')
     if not dest.exists():
         dest.mkdir()
-    main()
+    #main()
     #to_wav_org()
+    check_duration()
