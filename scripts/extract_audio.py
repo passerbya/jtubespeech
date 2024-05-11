@@ -51,7 +51,7 @@ if __name__ == "__main__":
         spath = d / (srt.stem + ".srt")
         if apath.exists() and spath.exists():
             continue
-        cmd = f'{ffmpeg_exe} -i "{vpath}" -vn -ac 1 -sample_fmt s16 -y "{apath}"'
+        cmd = f'{ffmpeg_exe} -i "{vpath}" -vn -af aresample=async=1 -ac 1 -sample_fmt s16 -y "{apath}"'
         ts[i % threadCount].add_data(cmd, srt, spath)
         i += 1
     print('-'*20, i)
