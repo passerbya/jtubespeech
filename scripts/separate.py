@@ -65,11 +65,11 @@ def main():
     for i in range(thread_count):
         ts.append(TaskThread(i))
     i = 0
-    for lang_dir in src.glob("*"):
+    for lang_dir in (src / 'txt').iterdir():
         if not lang_dir.is_dir():
             continue
-        for srt in lang_dir.glob("**/*.txt"):
-            if srt.name == 'segments.txt':
+        for srt in lang_dir.iterdir():
+            if srt.name == 'segments.txt' or srt.suffix != '.txt':
                 continue
             wav_dest = Path(str(srt).replace('/txt/', '/wav/').replace('.txt', '.wav'))
             print(wav_dest)
