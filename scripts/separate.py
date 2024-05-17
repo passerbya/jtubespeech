@@ -44,7 +44,7 @@ class TaskThread(threading.Thread):
             print(cmd)
 
             #demucs.separate.main(["-d", f"cuda:{self.cuda_num}", "-n", "htdemucs_ft", "--shifts", "4", "--two-stems", "vocals", "-o", str(outdir), wav_src])
-            subprocess.check_output(cmd, shell=True)
+            subprocess.check_output(cmd, shell=True, executable='/bin/bash')
             '''
             ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
             temp_path = outdir / 'htdemucs_ft' / wav_dest.stem / 'vocals.wav'
