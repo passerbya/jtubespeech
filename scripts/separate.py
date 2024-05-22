@@ -79,7 +79,7 @@ def main():
                 wav_dest.parent.mkdir(parents=True)
             outdir = src / 'temp'
             wav_src = str(srt).replace('/txt/', '/wav_org/').replace('.txt', '.wav')
-            cmd = f"source /etc/profile && export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32 && /root/miniconda3/bin/demucs -d cuda:{i % thread_count} -n htdemucs_ft --shifts=4 -o {outdir} {wav_src}"
+            cmd = f"source /etc/profile && export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32 && /root/miniconda3/bin/demucs -d cuda:{i % thread_count} -n htdemucs_ft -j 4 --shifts=4 -o {outdir} {wav_src}"
             ts[i % thread_count].add_data(cmd, outdir, wav_dest, wav_src)
             i += 1
 
