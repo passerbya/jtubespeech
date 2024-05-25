@@ -83,7 +83,6 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
         model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xlsr-53-chinese-zh-cn-gpt"
     elif lang == 'en':
         model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-1b-english"
-        model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xls-r-300m-en-colab"
     elif lang == 'ja':
         model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-japanese"
     elif lang == 'ko':
