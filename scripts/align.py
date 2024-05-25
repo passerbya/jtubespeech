@@ -384,7 +384,7 @@ def align(
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put("STOP")
     while True:
-        if not task_queue.empty() or done_queue.empty():
+        if not task_queue.empty() or not done_queue.empty():
             time.sleep(20)
             continue
         break
