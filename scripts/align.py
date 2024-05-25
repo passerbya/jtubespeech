@@ -334,10 +334,6 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
         else:
             print('pass:', stem, accuracy/total)
             out_queue.put((wav24k,subs))
-    global task_done_num
-    task_done_num += 1
-    if task_done_num == NUMBER_OF_PROCESSES:
-        out_queue.put("STOP")
     print(f"align_worker {num} stopped")
 
 def align(
@@ -384,10 +380,14 @@ def align(
     for stem in files_dict.keys():
         (wav, txt) = files_dict[stem]
         task_queue.put((wav, txt))
-    time.sleep(20)
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put("STOP")
+    while True:
+        if not task_queue.empty() or done_queue.empty():
+            time.sleep(20)
+            continue
+        break
     print("align done.")
 
 def get_parser():
@@ -427,6 +427,5 @@ NUMBER_OF_PROCESSES = 1
 skip_duration = 0
 pattern_space = regex.compile(r'\s')
 pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
-task_done_num = 0
 if __name__ == "__main__":
     main()
