@@ -15,6 +15,7 @@ import ctc_segmentation
 import pykakasi
 from transformers import AutoProcessor, Wav2Vec2ForCTC, Wav2Vec2Processor, Wav2Vec2CTCTokenizer
 from tts_norm.normalizer import Normalizer
+from torch.multiprocessing import Process, Queue
 
 normalizer_map = {}
 ffmpegExe = "/usr/local/ffmpeg/bin/ffmpeg"
@@ -50,21 +51,39 @@ def format_times(ts):
 
     return "%d:%02d:%02d" % (h, m, s)
 
-def align(
-    wavdir: Path,
-    txtdir: Path,
-    output: Path,
-    lang: str = 'en',
-    **kwargs,
-):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def listen_worker(in_queue, segment_file, seg_list, wav_out):
+    print("listen_worker started.")
+
+    for wav24k, subs in iter(in_queue.get, "STOP"):
+        for sub in subs:
+            rec_id = sub[0]
+            opath = wav_out / rec_id[0:2] / (rec_id + '.wav')
+            if not opath.parent.exists():
+                opath.parent.mkdir()
+            cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
+            subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,shell=True)
+
+        with open(segment_file,'a',encoding='utf-8') as f:
+            for sub in subs:
+                rec_id = sub[0]
+                line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
+                f.write(line)
+                f.flush()
+
+    print("listen_worker ended.")
+
+def align_worker(in_queue, out_queue, lang, seg_list, num=0):
+    print(f"align_worker {num} started")
+    global skip_duration
+    batch_size = 1
+    device = torch.device(f"cuda:{num}" if torch.cuda.is_available() else "cpu")
     print(device)
     print('loading ...')
-    batch_size = 1
     if lang == 'zh':
         model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xlsr-53-chinese-zh-cn-gpt"
     elif lang == 'en':
         model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-1b-english"
+        model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xls-r-300m-en-colab"
     elif lang == 'ja':
         model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-japanese"
     elif lang == 'ko':
@@ -91,32 +110,19 @@ def align(
     processor = Wav2Vec2Processor.from_pretrained(model_name)
     tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(model_name)
     model = Wav2Vec2ForCTC.from_pretrained(model_name).to(device)
+    vocab = tokenizer.get_vocab()
+    inv_vocab = {v:k for k,v in vocab.items()}
+    if "<unk>" in vocab:
+        unk_id = vocab["<unk>"]
+    elif "<UNK>" in vocab:
+        unk_id = vocab["<UNK>"]
+    elif "[unk]" in vocab:
+        unk_id = vocab["[unk]"]
+    elif "[UNK]" in vocab:
+        unk_id = vocab["[UNK]"]
     print('load done')
-
-    if not output:
-        output.mkdir()
-    segment_file = output / "segments.trans.tsv"
-    if segment_file.exists():
-        with open(segment_file) as f:
-            seg_list = f.readlines()
-        seg_list = set([item.split('\t', 1)[0] for item in seg_list])
-    else:
-        seg_list = set()
-        segment_file.touch()
-    print(len(seg_list))
-
-    # find files
-    files_dict = find_files(wavdir, txtdir)
-    num_files = len(files_dict)
-    print(f"Found {num_files} files.")
-
-    pattern_space = regex.compile(r'\s')
-    pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
-    # Align
-    skip_duration = 0
-    for stem in files_dict.keys():
-        (wav, txt) = files_dict[stem]
-        # generate kaldi-style `text`
+    for wav, txt in iter(in_queue.get, "STOP"):
+        stem = wav.stem
         with open(txt) as f:
             lines = f.readlines()
         utterance_list = []
@@ -198,16 +204,6 @@ def align(
                 subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
                 shutil.move(temp_path, wav24k)
         audio, sample_rate = soundfile.read(wav16k)
-        vocab = tokenizer.get_vocab()
-        inv_vocab = {v:k for k,v in vocab.items()}
-        if "<unk>" in vocab:
-            unk_id = vocab["<unk>"]
-        elif "<UNK>" in vocab:
-            unk_id = vocab["<UNK>"]
-        elif "[unk]" in vocab:
-            unk_id = vocab["[unk]"]
-        elif "[UNK]" in vocab:
-            unk_id = vocab["[UNK]"]
 
         # Run prediction, get logits and probabilities
         start = end = 0
@@ -338,23 +334,62 @@ def align(
             print('skip:', stem, accuracy/total)
         else:
             print('pass:', stem, accuracy/total)
-            for sub in subs:
-                rec_id = sub[0]
-                opath = output / rec_id[0:2] / (rec_id + '.wav')
-                if not opath.parent.exists():
-                    opath.parent.mkdir()
-                cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
-                subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
+            out_queue.put((wav24k,subs))
+    global task_done_num
+    task_done_num += 1
+    if task_done_num == NUMBER_OF_PROCESSES:
+        out_queue.put("STOP")
+    print(f"align_worker {num} stopped")
 
-            with open(segment_file,'a',encoding='utf-8') as f:
-                for sub in subs:
-                    rec_id = sub[0]
-                    line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
-                    f.write(line)
-                    f.flush()
+def align(
+    wavdir: Path,
+    txtdir: Path,
+    output: Path,
+    lang: str = 'en',
+    **kwargs,
+):
+    if not output:
+        output.mkdir()
+    segment_file = output / "segments.trans.tsv"
+    if segment_file.exists():
+        with open(segment_file) as f:
+            seg_list = f.readlines()
+        seg_list = set([item.split('\t', 1)[0] for item in seg_list])
+    else:
+        seg_list = set()
+        segment_file.touch()
+    print(len(seg_list))
 
-        print('accuracy:', stem, (accuracy/total if total!=0 else 0))
+    # find files
+    files_dict = find_files(wavdir, txtdir)
+    num_files = len(files_dict)
+    print(f"Found {num_files} files.")
 
+    task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
+    done_queue = Queue()
+
+    # Start worker processes
+    Process(
+        target=listen_worker,
+        args=(
+            done_queue,
+            segment_file,
+            seg_list,
+            output
+        ),
+    ).start()
+
+    for i in range(NUMBER_OF_PROCESSES):
+        Process(target=align_worker, args=(task_queue, done_queue, lang, seg_list, i)).start()
+
+    # Align
+    for stem in files_dict.keys():
+        (wav, txt) = files_dict[stem]
+        task_queue.put((wav, txt))
+    time.sleep(20)
+    # Tell child processes to stop
+    for i in range(NUMBER_OF_PROCESSES):
+        task_queue.put("STOP")
     print("align done.")
 
 def get_parser():
@@ -390,5 +425,10 @@ def main(cmd=None):
     kwargs = vars(args)
     align(**kwargs)
 
+NUMBER_OF_PROCESSES = 1
+skip_duration = 0
+pattern_space = regex.compile(r'\s')
+pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
+task_done_num = 0
 if __name__ == "__main__":
     main()
