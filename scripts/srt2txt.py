@@ -383,7 +383,7 @@ def check_duration():
     for lang_dir in dest.glob("*"):
         if not lang_dir.is_dir():
             continue
-        for txt in lang_dir.glob("**/*.txt"):
+        for txt in (lang_dir / 'txt').glob("**/*.txt"):
             wav = txt.parent.parent.parent / 'wav' / txt.parent.name / (txt.stem + '.wav')
             if not wav.exists():
                 continue
