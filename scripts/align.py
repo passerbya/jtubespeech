@@ -51,7 +51,7 @@ def format_times(ts):
 
     return "%d:%02d:%02d" % (h, m, s)
 
-def listen_worker(in_queue, segment_file, seg_list, wav_out):
+def listen_worker(in_queue, segment_file, wav_out):
     print("listen_worker started.")
 
     for wav24k, subs in iter(in_queue.get, "STOP"):
@@ -373,7 +373,6 @@ def align(
         args=(
             done_queue,
             segment_file,
-            seg_list,
             output
         ),
     ).start()
