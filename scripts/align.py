@@ -55,6 +55,7 @@ def listen_worker(in_queue, segment_file, wav_out):
     print("listen_worker started.")
 
     for wav24k, subs in iter(in_queue.get, "STOP"):
+        print('listen_worker', segment_file, wav_out, wav24k, len(subs))
         for sub in subs:
             rec_id = sub[0]
             opath = wav_out / rec_id[0:2] / (rec_id + '.wav')
@@ -307,15 +308,16 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
                         skip_duration += utt_end - utt_start
                         print("large deviation", f'{stem}, skip {skip_duration}s', diff1, diff2, t)
                     else:
-                        accuracy += 1
                         if utt_end - utt_start > 1.0:
                             #去掉1秒以下，2个字或词以下的内容
                             if lang in ('zh', 'ja', 'th'):
                                 utt_txt = pattern_punctuation.sub("", cleaned_texts_slice[i])
                                 if len(utt_txt) > 2:
+                                    accuracy += 1
                                     subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
                             else:
                                 if cleaned_texts_slice[i].count(' ') > 1:
+                                    accuracy += 1
                                     subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
                 offset_second = 0.1
             except AssertionError:
