@@ -387,6 +387,7 @@ def align(
         task_queue.put("STOP")
     while not task_queue.empty() or not done_queue.empty():
         time.sleep(20)
+    done_queue.put("STOP")
     print("align done.")
 
 def get_parser():
