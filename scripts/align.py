@@ -5,6 +5,7 @@ import time
 import torch
 import numpy as np
 import shutil
+import re
 import regex
 
 from pathlib import Path
@@ -20,6 +21,23 @@ from torch.multiprocessing import Process, Queue
 normalizer_map = {}
 ffmpegExe = "/usr/local/ffmpeg/bin/ffmpeg"
 ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
+
+
+def is_chinese(content):
+    mobj = re.fullmatch('[\u4E00-\u9FA5\s,.?!]+', content)
+    return mobj is not None
+
+def is_japanese(content):
+    mobj = re.fullmatch('[\u3040-\u309F\u30A0-\u30FF\s,.?!]+', content)
+    return mobj is not None
+
+def is_korean(content):
+    mobj = re.fullmatch('[\uAC00-\uD7A3\s,.?!]+', content)
+    return mobj is not None
+
+def is_english(content):
+    mobj = re.fullmatch('[\w\'\s,.?!]+', content)
+    return mobj is not None
 
 def text_processing(utt_txt, _lang):
     if _lang in normalizer_map:
@@ -166,6 +184,22 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
             if unnormalize:
                 skip_duration += float(utt_end) - float(utt_start)
                 print(f"{stem}, skip {skip_duration}s, unnormalize {utt_txt} {cleaned}.")
+                continue
+            if lang == 'zh' and not is_chinese(cleaned):
+                skip_duration += float(utt_end) - float(utt_start)
+                print(f"{stem}, skip {skip_duration}s, illegal character {utt_txt} {cleaned}.")
+                continue
+            if lang == 'ja' and not (is_japanese(cleaned) or is_chinese(cleaned)):
+                skip_duration += float(utt_end) - float(utt_start)
+                print(f"{stem}, skip {skip_duration}s, illegal character {utt_txt} {cleaned}.")
+                continue
+            if lang == 'ko' and not is_korean(cleaned):
+                skip_duration += float(utt_end) - float(utt_start)
+                print(f"{stem}, skip {skip_duration}s, illegal character {utt_txt} {cleaned}.")
+                continue
+            if lang == 'en' and not is_english(cleaned):
+                skip_duration += float(utt_end) - float(utt_start)
+                print(f"{stem}, skip {skip_duration}s, illegal character {utt_txt} {cleaned}.")
                 continue
             if lang == 'ja':
                 result = kks.convert(cleaned)
