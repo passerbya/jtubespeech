@@ -36,7 +36,7 @@ def is_korean(content):
     return mobj is not None
 
 def is_english(content):
-    mobj = re.fullmatch('[\w\'\s,.?!]+', content)
+    mobj = re.fullmatch('[a-zA-Z0-9\-_\'\s,.?!]+', content)
     return mobj is not None
 
 def text_processing(utt_txt, _lang):
