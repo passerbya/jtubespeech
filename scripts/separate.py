@@ -30,13 +30,16 @@ class TaskThread(threading.Thread):
 
     def add_data(self, cmd, outdir, wav_dest, wav_src):
         self.queue_obj.put((cmd, outdir, wav_dest, wav_src))
+
     def run(self):
         while not self.queue_obj.empty():
+            '''
             now = datetime.now()
             current_hour = now.hour
             if (self.cuda_num == 0 and not (3 <= current_hour < 7)) or (self.cuda_num == 1 and not (0 <= current_hour < 25)):
                 time.sleep(60)
                 continue
+            '''
 
             (cmd, outdir, wav_dest, wav_src) = self.queue_obj.get()
             if wav_dest.exists():
