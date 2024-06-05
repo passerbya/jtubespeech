@@ -227,13 +227,13 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
         wav24k = wav.parent / (wav.stem+'_24k.wav')
         if not wav16k.exists():
             with tempfile.TemporaryDirectory() as temp_dir_path:
-                temp_path = Path(temp_dir_path) / (wav.stem+'_16k.wav')
+                temp_path = Path(temp_dir_path) / wav16k.name
                 cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
                 subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
                 shutil.move(temp_path, wav16k)
         if not wav24k.exists():
             with tempfile.TemporaryDirectory() as temp_dir_path:
-                temp_path = Path(temp_dir_path) / (wav.stem+'_24k.wav')
+                temp_path = Path(temp_dir_path) / wav24k.name
                 cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
                 subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
                 shutil.move(temp_path, wav24k)
