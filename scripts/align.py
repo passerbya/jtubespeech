@@ -417,8 +417,7 @@ def align(
         (wav, txt) = files_dict[stem]
         task_queue.put((wav, txt))
     # Tell child processes to stop
-    for i in range(NUMBER_OF_PROCESSES):
-        task_queue.put("STOP")
+    task_queue.put("STOP")
     while not task_queue.empty() or not done_queue.empty():
         time.sleep(20)
     done_queue.put("STOP")
