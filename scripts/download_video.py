@@ -71,6 +71,8 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
     if wait_sec > 0.01:
       time.sleep(wait_sec)
 
+  print(proxy, 'done')
+
 def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
   """
   Tips:
@@ -112,7 +114,8 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
     print('Put into Queue', videoid)
     task_queue.put((videoid, fn))
 
-  task_queue.put('STOP')
+  for _ in proxies:
+    task_queue.put('STOP')
 
   return Path(outdir) / lang
 

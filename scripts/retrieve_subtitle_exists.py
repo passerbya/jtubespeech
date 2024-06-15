@@ -78,7 +78,8 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
       continue
     task_queue.put(videoid)
 
-  task_queue.put("STOP")
+  for _ in proxies:
+    task_queue.put("STOP")
   while not task_queue.empty() or not done_queue.empty():
     time.sleep(20)
   done_queue.put("STOP")
