@@ -45,6 +45,7 @@ class TaskThread(threading.Thread):
             if wav_dest.exists():
                 continue
             print(cmd)
+            wav_src = Path(wav_src)
 
             #demucs.separate.main(["-d", f"cuda:{self.cuda_num}", "-n", "htdemucs_ft", "--shifts", "4", "--two-stems", "vocals", "-o", str(outdir), wav_src])
             subprocess.check_output(cmd, shell=True, executable='/bin/bash')

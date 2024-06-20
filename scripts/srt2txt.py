@@ -193,41 +193,43 @@ def format_times(ts):
 
     return "%04d:%02d:%02d" % (h, m, s)
 
-def main():
+def main(filter_lang=None):
     lang_stat = {}
     for lang_dir in src.glob("*"):
         if not lang_dir.is_dir():
+            continue
+        if lang_dir.name.startswith('中'):
+            lang = 'zh'
+        elif lang_dir.name.startswith('日'):
+            lang = 'ja'
+        elif lang_dir.name.startswith('英'):
+            lang = 'en'
+        elif lang_dir.name.startswith('阿'):
+            lang = 'ar'
+        elif lang_dir.name.startswith('德'):
+            lang = 'de'
+        elif lang_dir.name.startswith('俄'):
+            lang = 'ru'
+        elif lang_dir.name.startswith('法'):
+            lang = 'fr'
+        elif lang_dir.name.startswith('韩'):
+            lang = 'ko'
+        elif lang_dir.name.startswith('葡'):
+            lang = 'pt'
+        elif lang_dir.name.startswith('泰'):
+            lang = 'th'
+        elif lang_dir.name.startswith('西'):
+            lang = 'es'
+        elif lang_dir.name.startswith('印地'):
+            lang = 'hi'
+        elif lang_dir.name.startswith('越'):
+            lang = 'vi'
+        if filter_lang is not None and filter_lang != lang:
             continue
         for srt in lang_dir.glob("**/*.srt"):
             wav = srt.parent / (srt.stem + '.wav')
             md5 = md5sum(srt)
             subs, is_bilingual = read_srt_sub(str(srt))
-            if lang_dir.name.startswith('中'):
-                lang = 'zh'
-            elif lang_dir.name.startswith('日'):
-                lang = 'ja'
-            elif lang_dir.name.startswith('英'):
-                lang = 'en'
-            elif lang_dir.name.startswith('阿'):
-                lang = 'ar'
-            elif lang_dir.name.startswith('德'):
-                lang = 'de'
-            elif lang_dir.name.startswith('俄'):
-                lang = 'ru'
-            elif lang_dir.name.startswith('法'):
-                lang = 'fr'
-            elif lang_dir.name.startswith('韩'):
-                lang = 'ko'
-            elif lang_dir.name.startswith('葡'):
-                lang = 'pt'
-            elif lang_dir.name.startswith('泰'):
-                lang = 'th'
-            elif lang_dir.name.startswith('西'):
-                lang = 'es'
-            elif lang_dir.name.startswith('印地'):
-                lang = 'hi'
-            elif lang_dir.name.startswith('越'):
-                lang = 'vi'
             wav_path = dest / lang / 'wav_org' / md5[0:2] / (md5 + '.wav')
             txt_path = dest / lang / 'txt' / md5[0:2] / (md5 + '.txt')
             if is_bilingual:
@@ -423,6 +425,6 @@ if __name__ == "__main__":
     dest = Path('/usr/local/corpus/4th_biz')
     if not dest.exists():
         dest.mkdir()
-    #main()
+    main('ar')
     #to_wav_org()
-    check_duration()
+    #check_duration()
