@@ -124,8 +124,18 @@ tokenizer = processor.tokenizer
 #accuracy: 0.8568627450980392 std:0.02422192277718887
 #lang = 'ar'
 
-model_name = "/usr/local/data/wav2vec2/wav2vec2-xlsr-multilingual-56"
-lang = 'zh'
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-xlsr-multilingual-56"
+#lang = 'zh'
+
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xlsr-persian-v3"
+#accuracy: 0.9515151515151515 std:0.011828147491267508
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xlsr-persian"
+#accuracy: 0.9613053613053613 std:0.007100461025272682
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xlsr-persian-shemo"
+#accuracy: 0.9568764568764568 std:0.010619279723131016
+model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-fa-colab"
+#accuracy: 0.9554778554778555 std:0.010990614392290057
+lang = 'fa'
 
 print('loading ...')
 processor = Wav2Vec2Processor.from_pretrained(model_name)
@@ -177,7 +187,6 @@ def align_with_transcript(md5):
         unk_id = vocab["[unk]"]
     elif "[UNK]" in vocab:
         unk_id = vocab["[UNK]"]
-    #print(inv_vocab)
 
     # Run prediction, get logits and probabilities
     start = 0
@@ -304,7 +313,9 @@ data = {'zh':['c1a8ee7a2db61a898a3a25ad548a3a61','c11af072f0d66300dd6147cb314018
         'fr':['ee692a7f2be3c1aab698af8f235a0a77','06eb682b713904eb0824cb8c8cf3e687','11be185fa018f82bf1913e503d2d72ef','f2c06c7253112fd2a987a0092f140c63','d8bb6fd1b92f73d2a1bee1e1f48d3282','da1c71c8d1059c45c28c981d8232bba0','19175517955c09d0ce571ea494ae7136','d0efe4c4f1aa76fb8caa5a58b846c220','3e23d75dcffe70960a529c1267588a77','53a0ae93a6a0e65c55ea0e8c3731efa7','e7e2e0cef70519c150953bc27483e959','faaddb7ec5fd4b7e6a431f9e529dfd90'],
         'de':['427c9c8473019bb033151234437b7dd1','0375601dce4ec5ee233e7975acb955cb','0402380f8edb1fd51ebd6f3f4349e4d6','beb65e2d98347107800e87249944c1d4','b36e087fc70fec89c41ec4d60ca5815b','59f454ae2c0e835e3d52cc98fed77a53','01f16b87270670701780ff8adf7eafe0','475889b203d077c7ce61d284b089347f','64585c8cbb07af26a0739d196b35a606','56c129b70de542423edc868cba3d25f4','56b8515b5a6467045a8d1b9e3379823c','3a2061f6fa043f5facb7ddf37d26c503','a322a0625136f24740a86b9883c965d7','77f2bcdfe8e5e3f528f437a50f055b2f','c9d61dbaebc32ab90ca62a59dc00e66c','80a75ea0bf43d70aebb1a1471a7f9542','4ba5b77b08a3c3fa65ad77530af1debb','d5ea5a3f1ad7f9664a936ed1f89cc20b'],
         'pt':['5aa1518ed74aede11efde41ce51d3f03','5548800a9409a56f0de3b8baf69802c6','60c6db09c2ad4a66fcccee7dc4e421f7','73b9a030f563a56e31ce21ab2878bea1','1b78ebfd703606932c2a746306f96d99','dca6a2ab33920f0631868610119f2c72','8c75602e986e25174d10c7933b39b560','3a5e28dfff9c0475a6c9e8ab8aa65bf5','1f36c1a48abdfe2d2a75e0ee89b3253c','7e993139c36f92f4914778c5b2d26c3f','e71bd174ebeeb87e8326786646db79db','430965aeba72e3290d1ba6ab6c4aace5'],
-        'ar':['dd245f768613ee840040a87291362c90','b239a8486ef16272e8330686255c7de3']}
+        'ar':['dd245f768613ee840040a87291362c90','b239a8486ef16272e8330686255c7de3'],
+        'fa':['6HrKJ87RPi0','aJU8uGdbAaE','gUY8CGcnEhE','iIgfI0UaQs0','KAVaN8XGX7k','wK94ZHGbHIo'],
+        }
 for d in data[lang]:
     align_with_transcript(d)
 
