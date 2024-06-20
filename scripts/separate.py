@@ -54,11 +54,11 @@ class TaskThread(threading.Thread):
             cmd = f'{ffmpeg_exe} -i "{temp_path}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{wav_dest}"'
             subprocess.check_output(cmd, shell=True)
             '''
-            temp_path = outdir / 'htdemucs_ft' / wav_dest.stem / 'vocals.wav'
+            temp_path = outdir / 'htdemucs_ft' / wav_src.stem / 'vocals.wav'
             temp_path.rename(wav_dest)
 
             try:
-                delete_folder(outdir / 'htdemucs_ft' / wav_dest.stem)
+                delete_folder(outdir / 'htdemucs_ft' / wav_src.stem)
             except:
                 pass
 
