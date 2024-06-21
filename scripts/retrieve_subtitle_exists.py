@@ -36,6 +36,7 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, wait_sec):
     # sleep
     if wait_sec > 0.01:
       time.sleep(wait_sec)
+  print(proxy, 'done')
 
 def write_worker(lang, fn_sub, subtitle_exists, in_queue):
   for videoid, auto_lang, manu_lang in iter(in_queue.get, "STOP"):
@@ -43,6 +44,10 @@ def write_worker(lang, fn_sub, subtitle_exists, in_queue):
     # write current result
     if len(subtitle_exists) % 100 == 0:
       subtitle_exists.to_csv(fn_sub, index=None)
+
+  # write
+  subtitle_exists.to_csv(fn_sub, index=None)
+  print('write done')
 
 def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_checkpoint=None):
   fn_sub = Path(outdir) / lang / f"{Path(fn_videoid).stem}.csv"
@@ -83,8 +88,6 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
   while not task_queue.empty() or not done_queue.empty():
     time.sleep(20)
   done_queue.put("STOP")
-  # write
-  subtitle_exists.to_csv(fn_sub, index=None)
   return fn_sub
 
 if __name__ == "__main__":
