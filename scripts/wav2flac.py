@@ -11,7 +11,13 @@ def separate_worker(num, task_queue):
     ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
     for wav_dest, wav_src in iter(task_queue.get, "STOP"):
         temp_path = outdir / wav_dest.name
-        cmd = f'{ffmpeg_exe} -i "{wav_src}" -ac 1 -y "{temp_path}"'
+        in_file = str(wav_src)
+        in_file = in_file.replace('$', '\$')
+        in_file = in_file.replace('"', '\\\"')
+        out_file = str(temp_path)
+        out_file = out_file.replace('$', '\$')
+        out_file = out_file.replace('"', '\\\"')
+        cmd = f'{ffmpeg_exe} -i "{in_file}" -ac 1 -y "{out_file}"'
         print(cmd)
         subprocess.run(cmd, shell=True)
         temp_path.rename(wav_dest)
