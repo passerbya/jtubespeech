@@ -24,7 +24,7 @@ def separate_worker(cuda_num, task_queue):
         temp_path = outdir / 'htdemucs_ft' / wav_src.stem / 'vocals.wav'
         temp_path.rename(wav_dest)
         delete_folder(outdir / 'htdemucs_ft' / wav_src.stem)
-    print(i, 'done')
+    print(cuda_num, 'done')
 
 def main():
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
