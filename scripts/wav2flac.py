@@ -43,7 +43,7 @@ def main():
     print("convert done.")
 
 
-NUMBER_OF_PROCESSES = 1
+NUMBER_OF_PROCESSES = 3
 if __name__ == "__main__":
     src = Path('/usr/local/corpus/4th_wav')
     main()
