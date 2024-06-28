@@ -90,7 +90,7 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
     with open(downloaded_fn, "r") as f:
       downloaded_video_ids = set([line.strip() for line in f.readlines()])
 
-  proxies = ['169.254.9.60:7890', '169.254.9.70:7890', '192.168.8.25:7890']
+  proxies = ['192.168.8.23:7890', '192.168.8.123:7890', '192.168.8.25:7890']
   task_queue = Queue(maxsize=len(proxies))
   # Start worker processes
   for proxy in proxies:

@@ -60,7 +60,7 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
     subtitle_exists = pd.read_csv(fn_checkpoint)
 
   vids = set(subtitle_exists["videoid"])
-  proxies = ['169.254.9.60:7890', '169.254.9.70:7890', '192.168.8.25:7890']
+  proxies = ['192.168.8.23:7890', '192.168.8.123:7890', '192.168.8.25:7890']
   task_queue = Queue(maxsize=len(proxies))
   done_queue = Queue()
   # Start worker processes

@@ -51,6 +51,6 @@ def main():
 
 NUMBER_OF_PROCESSES = 3
 if __name__ == "__main__":
-    src = Path('/usr/local/corpus/4th_wav')
+    src = Path('/usr/local/ocr/jtubespeech/video/vi')
     main()
 
