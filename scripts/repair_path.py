@@ -36,11 +36,11 @@ def main():
             else:
                 txt_file.unlink()
 
-        wav_org_file_real = src / 'wav_org' / txt_file.stem[0:2] / (txt_file.stem + '.wav')
+        wav_org_file_real = src / 'wav_org' / txt_file.stem[0:2] / (txt_file.stem + '.flac')
         if not wav_org_file_real.exists():
             print('no wav', wav_org_file_real)
 
-    for wav_org_file in (src / 'wav_org').glob("**/*.wav"):
+    for wav_org_file in (src / 'wav_org').glob("**/*.flac"):
         wav16_dir = wav_org_file.parent
         wav_dir_real = src / 'wav' / wav_org_file.stem[0:2]
         if not wav_dir_real.exists():

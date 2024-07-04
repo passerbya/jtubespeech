@@ -29,7 +29,7 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
-    cp = subprocess.run(cmd, shell=True,universal_newlines=True)
+    cp = subprocess.run(cmd, shell=True, universal_newlines=True)
     if cp.returncode != 0:
       print(f"Failed to download the video: url = {url}")
       continue
@@ -52,8 +52,8 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
 
     # wav -> wav16k (resampling to 16kHz, 1ch)
     try:
-      #subprocess.run("ffmpeg -i {} -ar 16000 -ac 1 -sample_fmt s16 -y {}".format(fn["wav"], fn["wav16k"]), shell=True,universal_newlines=True)
-      shutil.move(fn["wav"], fn["wav_org"])
+      subprocess.run("ffmpeg -i {} -ac 1 -y {}".format(fn["wav"], fn["wav_org"]), shell=True, universal_newlines=True)
+      #shutil.move(fn["wav"], fn["wav_org"])
       '''
       wav = pydub.AudioSegment.from_file(fn["wav"], format = "wav")
       wav = pydub.effects.normalize(wav, 5.0).set_frame_rate(16000).set_channels(1)
@@ -64,8 +64,8 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
       continue
 
     # remove original wav
-    #if not keep_org:
-    #  fn["wav"].unlink()
+    if not keep_org:
+      fn["wav"].unlink()
 
     # wait
     if wait_sec > 0.01:
@@ -105,7 +105,10 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
       continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
-      fn[k] = Path(outdir) / lang / k / (make_basename(videoid) + "." + k[:3])
+      if k == 'wav_org':
+        fn[k] = Path(outdir) / lang / k / (make_basename(videoid) + ".flac")
+      else:
+        fn[k] = Path(outdir) / lang / k / (make_basename(videoid) + "." + k[:3])
       fn[k].parent.mkdir(parents=True, exist_ok=True)
     if fn["wav_org"].exists() and fn["txt"].exists():
       continue
