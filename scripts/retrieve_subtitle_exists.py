@@ -26,7 +26,7 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, wait_sec):
   for videoid in iter(in_queue.get, "STOP"):
     url = make_video_url(videoid)
     try:
-      cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp --list-subs --sub-lang {lang} --skip-download {url}"
+      cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies /usr/local/data/jtubespeech/cookies.txt --list-subs --sub-lang {lang} --skip-download {url}"
       print(cmd)
       result = subprocess.check_output(cmd, shell=True, universal_newlines=True)
       auto_lang, manu_lang = get_subtitle_language(result)
@@ -77,7 +77,10 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
         proxy, lang, task_queue, done_queue, wait_sec
       ),
     ).start()
-  for videoid in tqdm(open(fn_videoid).readlines()):
+  with open(fn_videoid) as f:
+    nvids = f.readlines()
+  print(len(vids), len(nvids))
+  for videoid in tqdm(nvids):
     videoid = videoid.strip(" ").strip("\n")
     if videoid in vids:
       continue
