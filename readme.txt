@@ -23,10 +23,11 @@ https://github.com/ytdl-org/youtube-dl/issues/31530#Description
 https://github.com/ytdl-org/ytdl-nightly/releases/tag/2023.09.25
 
 2）从维基词典下载youtube搜索词条，https://kaikki.org/dictionary/
-python scripts/make_search_word1.py https://kaikki.org/dictionary/Indonesian/kaikki.org-dictionary-Indonesian.json id
-python scripts/make_search_word1.py https://kaikki.org/dictionary/Korean/kaikki.org-dictionary-Korean.json ko
-python scripts/make_search_word1.py https://kaikki.org/dictionary/Persian/kaikki.org-dictionary-Persian.json fa
-python scripts/make_search_word1.py https://kaikki.org/dictionary/Khmer/kaikki.org-dictionary-Khmer.json km
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Indonesian/kaikki.org-dictionary-Indonesian.jsonl id
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Korean/kaikki.org-dictionary-Korean.jsonl ko
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Persian/kaikki.org-dictionary-Persian.jsonl fa
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Khmer/kaikki.org-dictionary-Khmer.jsonl km
+python scripts/make_search_word1.py https://kaikki.org/dictionary/Lao/kaikki.org-dictionary-Lao.jsonl lo
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
