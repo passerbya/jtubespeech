@@ -1,3 +1,4 @@
+import os
 import time
 import requests
 import argparse
@@ -5,6 +6,8 @@ import re
 import sys
 import traceback
 import subprocess
+import shutil
+import random
 from pathlib import Path
 from util import make_video_url, get_subtitle_language
 import pandas as pd
@@ -23,10 +26,13 @@ def parse_args():
   return parser.parse_args(sys.argv[1:])
 
 def retrieve_worker(proxy, lang, in_queue, out_queue, wait_sec):
+  r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
+  cookie_file = f'/usr/local/data/jtubespeech/cookies_{r}.txt'
+  shutil.copy('/usr/local/data/jtubespeech/cookies.txt', cookie_file)
   for videoid in iter(in_queue.get, "STOP"):
     url = make_video_url(videoid)
     try:
-      cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies /usr/local/data/jtubespeech/cookies.txt --list-subs --sub-lang {lang} --skip-download {url}"
+      cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --list-subs --sub-lang {lang} --skip-download {url}"
       print(cmd)
       result = subprocess.check_output(cmd, shell=True, universal_newlines=True)
       auto_lang, manu_lang = get_subtitle_language(result)
@@ -36,6 +42,8 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, wait_sec):
     # sleep
     if wait_sec > 0.01:
       time.sleep(wait_sec)
+
+  os.remove(cookie_file)
   print(proxy, 'done')
 
 def write_worker(lang, fn_sub, subtitle_exists, in_queue):

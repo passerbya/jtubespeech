@@ -6,6 +6,7 @@ import subprocess
 import shutil
 #import pydub
 import glob
+import random
 from pathlib import Path
 from util import make_video_url, make_basename, vtt2txt, autovtt2txt
 import pandas as pd
@@ -24,10 +25,13 @@ def parse_args():
   return parser.parse_args(sys.argv[1:])
 
 def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
+  r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
+  cookie_file = f'/usr/local/data/jtubespeech/cookies_{r}.txt'
+  shutil.copy('/usr/local/data/jtubespeech/cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies /usr/local/data/jtubespeech/cookies.txt --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True)
     if cp.returncode != 0:
@@ -71,6 +75,7 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
     if wait_sec > 0.01:
       time.sleep(wait_sec)
 
+  os.remove(cookie_file)
   print(proxy, 'done')
 
 def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
