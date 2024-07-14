@@ -20,6 +20,8 @@ def delete_folder(pth) :
 def separate_worker(_src, cuda_num, task_queue):
     outdir = _src / 'temp'
     for wav_dest, wav_src in iter(task_queue.get, "STOP"):
+        if wav_dest.exists():
+            continue
         demucs.separate.main(["-d", f"cuda:{cuda_num}", "-n", "htdemucs_ft", "--shifts", "4", "--two-stems", "vocals", "-o", str(outdir), wav_src])
         wav_src = Path(wav_src)
         temp_path = outdir / 'htdemucs_ft' / wav_src.stem / 'vocals.wav'
