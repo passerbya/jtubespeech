@@ -4,6 +4,7 @@
 import sys
 import shutil
 import demucs.separate
+import torch
 from pathlib import Path
 from torch.multiprocessing import Process, Queue
 
@@ -16,8 +17,8 @@ def delete_folder(pth) :
             sub.unlink()
     pth.rmdir()
 
-def separate_worker(cuda_num, task_queue):
-    outdir = src / 'temp'
+def separate_worker(_src, cuda_num, task_queue):
+    outdir = _src / 'temp'
     for wav_dest, wav_src in iter(task_queue.get, "STOP"):
         demucs.separate.main(["-d", f"cuda:{cuda_num}", "-n", "htdemucs_ft", "--shifts", "4", "--two-stems", "vocals", "-o", str(outdir), wav_src])
         wav_src = Path(wav_src)
@@ -33,7 +34,7 @@ def main():
     for i in range(NUMBER_OF_PROCESSES):
         Process(
             target=separate_worker,
-            args=(i, task_queue),
+            args=(src, i, task_queue),
         ).start()
 
     for _dir in (src / 'txt').iterdir():
@@ -58,8 +59,9 @@ def main():
     print("separate done.")
 
 
-NUMBER_OF_PROCESSES = 1
+NUMBER_OF_PROCESSES = 2
 if __name__ == "__main__":
-    src = Path('/usr/local/ocr/5th_biz/en/')
+    torch.multiprocessing.set_start_method('spawn')
+    src = Path('/usr/local/ocr/5th_biz/zh/')
     main()
 
