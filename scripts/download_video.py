@@ -34,8 +34,10 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True)
-    if cp.returncode != 0:
+    if cp.returncode != 0 or not fn["wav"].exists():
       print(f"Failed to download the video: url = {url}")
+      if fn["vtt"].exists():
+        fn["vtt"].unlink()
       continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
