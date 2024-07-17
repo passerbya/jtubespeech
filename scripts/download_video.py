@@ -31,7 +31,7 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
   for videoid, fn in iter(task_queue.get, "STOP"):
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True)
     if cp.returncode != 0:
