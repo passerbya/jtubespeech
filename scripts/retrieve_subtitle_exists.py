@@ -50,7 +50,7 @@ def write_worker(lang, fn_sub, subtitle_exists, in_queue):
   for videoid, auto_lang, manu_lang in iter(in_queue.get, "STOP"):
     subtitle_exists = pd.concat([subtitle_exists, pd.DataFrame([{"videoid": videoid, "auto": lang in auto_lang, "sub": lang in manu_lang}])], ignore_index=True)
     # write current result
-    if len(subtitle_exists) % 100 == 0:
+    if len(subtitle_exists) % 10 == 0:
       subtitle_exists.to_csv(fn_sub, index=None)
 
   # write
