@@ -21,13 +21,14 @@ def parse_args():
   parser.add_argument("lang",         type=str, help="language code (ja, en, ...)")
   parser.add_argument("sublist",      type=str, help="filename of list of video IDs with subtitles")  
   parser.add_argument("--outdir",     type=str, default="video", help="dirname to save videos")
+  parser.add_argument("--proxies",    type=str, nargs='+', default="192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890")
   parser.add_argument("--keeporg",    action='store_true', default=False, help="keep original audio file.")
   return parser.parse_args(sys.argv[1:])
 
 def download_worker(proxy, lang, task_queue, error_queue, error_vids, wait_sec, keep_org):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
-  cookie_file = f'/usr/local/data/jtubespeech/cookies_{r}.txt'
-  shutil.copy('/usr/local/data/jtubespeech/cookies.txt', cookie_file)
+  cookie_file = f'cookies_{r}.txt'
+  shutil.copy('cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
     if videoid in error_vids:
       continue
@@ -94,7 +95,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print('save error done')
 
-def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
+def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=False):
   """
   Tips:
     If you want to download automatic subtitles instead of manual subtitles, please change as follows.
@@ -105,13 +106,12 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
   """
 
   sub = pd.read_csv(fn_sub)
-  downloaded_fn = f'videoid/bak/{lang}wiki-latest-pages-articles-multistream-index.txt'
-  downloaded_video_ids = set()
-  if os.path.exists(downloaded_fn):
-    with open(downloaded_fn, "r") as f:
-      downloaded_video_ids = set([line.strip() for line in f.readlines()])
+  empty_fn = f'videoid/empty/{lang}wiki-latest-pages-articles-multistream-index.txt'
+  empty_vids = set()
+  if os.path.exists(empty_fn):
+    with open(empty_fn, "r") as f:
+      empty_vids = set([line.strip() for line in f.readlines()])
 
-  proxies = ['192.168.8.23:7890', '192.168.8.123:7890', '192.168.8.25:7890']
   task_queue = Queue(maxsize=len(proxies))
   error_queue = Queue()
   error_fn = Path(f'videoid/error/{lang}wiki-latest-pages-articles-multistream-index.txt')
@@ -140,7 +140,7 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
     ),
   ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    if videoid in downloaded_video_ids:
+    if videoid in empty_vids:
       continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
@@ -164,6 +164,6 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
 if __name__ == "__main__":
   args = parse_args()
 
-  dirname = download_video(args.lang, args.sublist, args.outdir, keep_org=args.keeporg)
+  dirname = download_video(args.lang, args.sublist, args.proxies, args.outdir, keep_org=args.keeporg)
   print(f"save {args.lang.upper()} videos to {dirname}.")
 

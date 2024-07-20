@@ -23,19 +23,20 @@ def parse_args():
   parser.add_argument("videoidlist",  type=str, help="filename of video ID list")  
   parser.add_argument("--outdir",     type=str, default="sub", help="dirname to save results")
   parser.add_argument("--checkpoint", type=str, default=None, help="filename of list checkpoint (for restart retrieving)")
+  parser.add_argument("--proxies",    type=str, nargs='+', default="192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890")
   return parser.parse_args(sys.argv[1:])
 
 def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, error_vids, wait_sec):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
-  cookie_file = f'/usr/local/data/jtubespeech/cookies_{r}.txt'
-  shutil.copy('/usr/local/data/jtubespeech/cookies.txt', cookie_file)
+  cookie_file = f'cookies_{r}.txt'
+  shutil.copy('cookies.txt', cookie_file)
   for videoid in iter(in_queue.get, "STOP"):
     if videoid in error_vids:
       continue
     url = make_video_url(videoid)
     try:
       cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --list-subs --sub-lang {lang} --skip-download {url}"
-      print(cmd)
+      #print(cmd)
       cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
       if cp.returncode != 0:
         if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
@@ -75,7 +76,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print('save error done')
 
-def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_checkpoint=None):
+def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0.2, fn_checkpoint=None):
   fn_sub = Path(outdir) / lang / f"{Path(fn_videoid).stem}.csv"
   fn_sub.parent.mkdir(parents=True, exist_ok=True)
 
@@ -86,7 +87,6 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
     subtitle_exists = pd.read_csv(fn_checkpoint)
 
   vids = set(subtitle_exists["videoid"])
-  proxies = ['192.168.8.23:7890', '192.168.8.123:7890', '192.168.8.25:7890']
   task_queue = Queue(maxsize=len(proxies))
   done_queue = Queue()
   error_queue = Queue()
@@ -140,6 +140,6 @@ def retrieve_subtitle_exists(lang, fn_videoid, outdir="sub", wait_sec=0.2, fn_ch
 if __name__ == "__main__":
   args = parse_args()
 
-  filename = retrieve_subtitle_exists(args.lang, args.videoidlist, \
+  filename = retrieve_subtitle_exists(args.lang, args.videoidlist, args.proxies, \
     args.outdir, fn_checkpoint=args.checkpoint)
   print(f"save {args.lang.upper()} subtitle info to {filename}.")
