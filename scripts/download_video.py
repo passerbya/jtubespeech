@@ -24,20 +24,26 @@ def parse_args():
   parser.add_argument("--keeporg",    action='store_true', default=False, help="keep original audio file.")
   return parser.parse_args(sys.argv[1:])
 
-def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
+def download_worker(proxy, lang, task_queue, error_queue, error_vids, wait_sec, keep_org):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
   cookie_file = f'/usr/local/data/jtubespeech/cookies_{r}.txt'
   shutil.copy('/usr/local/data/jtubespeech/cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
+    if videoid in error_vids:
+      continue
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
-    cp = subprocess.run(cmd, shell=True, universal_newlines=True)
+    cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0 or not fn["wav"].exists():
       print(f"Failed to download the video: url = {url}")
       if fn["vtt"].exists():
         fn["vtt"].unlink()
+      if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout))\
+         or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
+        error_queue.put(videoid)
+        error_vids.add(videoid)
       continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
@@ -79,6 +85,14 @@ def download_worker(proxy, lang, task_queue, wait_sec, keep_org):
 
   os.remove(cookie_file)
   print(proxy, 'done')
+  error_queue.put('STOP')
+
+def save_error_worker(error_fn, in_queue):
+  with open(str(error_fn), "w") as f:
+    for videoid in iter(in_queue.get, "STOP"):
+      f.write(videoid+'\n')
+      f.flush()
+  print('save error done')
 
 def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
   """
@@ -99,14 +113,32 @@ def download_video(lang, fn_sub, outdir="video", wait_sec=10, keep_org=False):
 
   proxies = ['192.168.8.23:7890', '192.168.8.123:7890', '192.168.8.25:7890']
   task_queue = Queue(maxsize=len(proxies))
+  error_queue = Queue()
+  error_fn = Path(f'videoid/error/{lang}wiki-latest-pages-articles-multistream-index.txt')
+  if not error_fn.exists():
+    error_fn.parent.mkdir(parents=True, exist_ok=True)
+    error_fn.touch()
+  error_vids = set()
+  with open(str(error_fn), "r") as f:
+    for line in f.readlines():
+      vid = line.strip()
+      error_queue.put(vid)
+      error_vids.add(vid)
+
   # Start worker processes
   for proxy in proxies:
     Process(
       target=download_worker,
       args=(
-        proxy, lang, task_queue, wait_sec, keep_org
+        proxy, lang, task_queue, error_queue, error_vids, wait_sec, keep_org
       ),
     ).start()
+  Process(
+    target=save_error_worker,
+    args=(
+      error_fn, error_queue
+    ),
+  ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
     if videoid in downloaded_video_ids:
       continue
