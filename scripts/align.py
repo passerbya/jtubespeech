@@ -24,8 +24,9 @@ ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
 
 
 def is_chinese(content):
-    mobj = re.fullmatch('[\u4E00-\u9FA5\s,.?!]+', content)
-    return mobj is not None
+    mobj1 = re.search('[\u4E00-\u9FA5]+', content)
+    mobj2 = re.fullmatch('[\u4E00-\u9FA5a-zA-Z\s,.?!]+', content)
+    return mobj1 is not None and mobj2 is not None
 
 def is_japanese(content):
     mobj = re.fullmatch('[\u3040-\u309F\u30A0-\u30FF\s,.?!]+', content)
