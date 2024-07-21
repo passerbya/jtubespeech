@@ -5,6 +5,7 @@ import sys
 import shutil
 import demucs.separate
 import torch
+import argparse
 from pathlib import Path
 from torch.multiprocessing import Process, Queue
 
@@ -64,6 +65,9 @@ def main():
 NUMBER_OF_PROCESSES = 2
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
-    src = Path('/usr/local/ocr/5th_biz/zh/')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path", type=Path, default=Path("/usr/local/ocr/5th_biz/zh"))
+    args = parser.parse_args()
+    src = args.path
     main()
 

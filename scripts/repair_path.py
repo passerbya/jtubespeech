@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
+import argparse
 from pathlib import Path
 
 def format_times(ts):
@@ -67,5 +68,8 @@ def main():
     print('done')
 
 if __name__ == "__main__":
-    src = Path('/usr/local/ocr/jtubespeech/video/vi')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path", type=Path, default=Path("/usr/local/ocr/jtubespeech/video/vi"))
+    args = parser.parse_args()
+    src = args.path
     main()
