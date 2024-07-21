@@ -64,6 +64,7 @@ def main():
 
     with open(src/'stat.txt', "wb") as f:
         f.write(format_times(lang_stat).encode('utf-8'))
+    print('done')
 
 if __name__ == "__main__":
     src = Path('/usr/local/ocr/jtubespeech/video/vi')

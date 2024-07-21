@@ -25,13 +25,11 @@ def parse_args():
   parser.add_argument("--keeporg",    action='store_true', default=False, help="keep original audio file.")
   return parser.parse_args(sys.argv[1:])
 
-def download_worker(proxy, lang, task_queue, error_queue, error_vids, wait_sec, keep_org):
+def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec, keep_org):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
   cookie_file = f'cookies_{r}.txt'
   shutil.copy('cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
-    if videoid in error_vids:
-      continue
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
@@ -44,7 +42,6 @@ def download_worker(proxy, lang, task_queue, error_queue, error_vids, wait_sec, 
       if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout))\
          or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
         error_queue.put(videoid)
-        error_vids.add(videoid)
       continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
@@ -56,7 +53,8 @@ def download_worker(proxy, lang, task_queue, error_queue, error_vids, wait_sec, 
 
     # vtt -> txt (reformatting)
     try:
-      txt = vtt2txt(open(fn["vtt"], "r").readlines())
+      with open(fn["vtt"], "r") as f:
+        txt = vtt2txt(f.readlines())
       with open(fn["txt"], "w") as f:
         f.writelines([f"{t[0]:1.3f}\t{t[1]:1.3f}\t\"{t[2]}\"\n" for t in txt])
     except Exception as e:
@@ -65,7 +63,11 @@ def download_worker(proxy, lang, task_queue, error_queue, error_vids, wait_sec, 
 
     # wav -> wav16k (resampling to 16kHz, 1ch)
     try:
-      subprocess.run("ffmpeg -i {} -ac 1 -y {}".format(fn["wav"], fn["wav_org"]), shell=True, universal_newlines=True)
+      if fn["txt"].stat().st_size == 0:
+        empty_queue.put(videoid)
+        fn["txt"].unlink()
+      else:
+        subprocess.run("ffmpeg -i {} -ac 1 -y {}".format(fn["wav"], fn["wav_org"]), shell=True, universal_newlines=True)
       #shutil.move(fn["wav"], fn["wav_org"])
       '''
       wav = pydub.AudioSegment.from_file(fn["wav"], format = "wav")
@@ -93,7 +95,7 @@ def save_error_worker(error_fn, in_queue):
     for videoid in iter(in_queue.get, "STOP"):
       f.write(videoid+'\n')
       f.flush()
-  print('save error done')
+  print(f'save {error_fn} done')
 
 def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=False):
   """
@@ -106,13 +108,8 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=
   """
 
   sub = pd.read_csv(fn_sub)
-  empty_fn = f'videoid/empty/{lang}wiki-latest-pages-articles-multistream-index.txt'
-  empty_vids = set()
-  if os.path.exists(empty_fn):
-    with open(empty_fn, "r") as f:
-      empty_vids = set([line.strip() for line in f.readlines()])
-
   task_queue = Queue(maxsize=len(proxies))
+
   error_queue = Queue()
   error_fn = Path(f'videoid/error/{lang}wiki-latest-pages-articles-multistream-index.txt')
   if not error_fn.exists():
@@ -125,12 +122,24 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=
       error_queue.put(vid)
       error_vids.add(vid)
 
+  empty_queue = Queue()
+  empty_fn = Path(f'videoid/empty/{lang}wiki-latest-pages-articles-multistream-index.txt')
+  if not empty_fn.exists():
+    empty_fn.parent.mkdir(parents=True, exist_ok=True)
+    empty_fn.touch()
+  empty_vids = set()
+  with open(str(empty_fn), "r") as f:
+    for line in f.readlines():
+      vid = line.strip()
+      empty_queue.put(vid)
+      empty_vids.add(vid)
+
   # Start worker processes
   for proxy in proxies:
     Process(
       target=download_worker,
       args=(
-        proxy, lang, task_queue, error_queue, error_vids, wait_sec, keep_org
+        proxy, lang, task_queue, error_queue, empty_queue, wait_sec, keep_org
       ),
     ).start()
   Process(
@@ -139,8 +148,14 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=
       error_fn, error_queue
     ),
   ).start()
+  Process(
+    target=save_error_worker,
+    args=(
+      empty_fn, empty_queue
+    ),
+  ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    if videoid in empty_vids:
+    if videoid in empty_vids or videoid in error_vids:
       continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
