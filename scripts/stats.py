@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
+import argparse
 from pathlib import Path
 
 def format_times(ts):
@@ -50,5 +51,8 @@ def main():
         f.write('\r\n'.join([x[1] for x in csv_lines]).encode('utf-8'))
 
 if __name__ == "__main__":
-    src = Path('/usr/local/corpus/4th_biz')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path", type=Path, default=Path("/usr/local/ocr/5th_biz"))
+    args = parser.parse_args()
+    src = args.path
     main()
