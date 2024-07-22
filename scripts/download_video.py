@@ -94,6 +94,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
   os.remove(cookie_file)
   print(proxy, 'done')
   error_queue.put('STOP')
+  empty_queue.put('STOP')
 
 def save_error_worker(error_fn, in_queue):
   with open(str(error_fn), "w") as f:
@@ -173,7 +174,6 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=
       continue
 
     # download
-    print('Put into Queue', videoid)
     task_queue.put((videoid, fn))
 
   for _ in proxies:
