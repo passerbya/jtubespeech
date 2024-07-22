@@ -35,10 +35,10 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --skip-download --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
-    if cp.returncode != 0 or not fn["wav"].exists():
+    if cp.returncode != 0:
       print(f"Failed to download the video: url = {url}")
-      if fn["vtt"].exists():
-        fn["vtt"].unlink()
+      for f in glob.glob(f"{base}.{lang}*.vtt"):
+        os.remove(f)
       if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
               or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
         error_queue.put(videoid)
@@ -56,6 +56,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
         txt = vtt2txt(f.readlines())
       if len(txt) == 0:
         empty_queue.put(videoid)
+        fn["vtt"].unlink()
         continue
       with open(fn["txt"], "w") as f:
         f.writelines([f"{t[0]:1.3f}\t{t[1]:1.3f}\t\"{t[2]}\"\n" for t in txt])
