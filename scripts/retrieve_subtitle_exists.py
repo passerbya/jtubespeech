@@ -26,13 +26,11 @@ def parse_args():
   parser.add_argument("--proxies",    type=str, nargs='+', default="192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890")
   return parser.parse_args(sys.argv[1:])
 
-def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, error_vids, wait_sec):
+def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
   cookie_file = f'cookies_{r}.txt'
   shutil.copy('cookies.txt', cookie_file)
   for videoid in iter(in_queue.get, "STOP"):
-    if videoid in error_vids:
-      continue
     url = make_video_url(videoid)
     try:
       cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --list-subs --sub-lang {lang} --skip-download {url}"
@@ -42,7 +40,6 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, error_vids, w
         if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
                 or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
           error_queue.put(videoid)
-          error_vids.add(videoid)
         continue
       result = cp.stdout
       #result = subprocess.check_output(cmd, shell=True, universal_newlines=True)
@@ -112,7 +109,7 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0
     Process(
       target=retrieve_worker,
       args=(
-        proxy, lang, task_queue, done_queue, error_queue, error_vids, wait_sec
+        proxy, lang, task_queue, done_queue, error_queue, wait_sec
       ),
     ).start()
   Process(
@@ -126,7 +123,7 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0
   print(len(vids), len(nvids))
   for videoid in tqdm(nvids):
     videoid = videoid.strip(" ").strip("\n")
-    if videoid in vids:
+    if videoid in vids or videoid in error_vids:
       continue
     task_queue.put(videoid)
 
