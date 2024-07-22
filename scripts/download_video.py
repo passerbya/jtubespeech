@@ -32,20 +32,19 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
   for videoid, fn in iter(task_queue.get, "STOP"):
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --skip-download --write-sub {url} -o {base}.\%\(ext\)s"
     print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0 or not fn["wav"].exists():
       print(f"Failed to download the video: url = {url}")
       if fn["vtt"].exists():
         fn["vtt"].unlink()
-      if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout))\
-         or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
+      if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
+              or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
         error_queue.put(videoid)
       continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
-      print(f, fn["vtt"])
       shutil.move(f, fn["vtt"])
     except Exception as e:
       print(f"Failed to rename subtitle file. The download may have failed: url = {url}, filename = {base}.{lang}.vtt, error = {e}")
@@ -55,19 +54,25 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
     try:
       with open(fn["vtt"], "r") as f:
         txt = vtt2txt(f.readlines())
+      if len(txt) == 0:
+        empty_queue.put(videoid)
+        continue
       with open(fn["txt"], "w") as f:
         f.writelines([f"{t[0]:1.3f}\t{t[1]:1.3f}\t\"{t[2]}\"\n" for t in txt])
     except Exception as e:
       print(f"Falied to convert subtitle file to txt file: url = {url}, filename = {fn['vtt']}, error = {e}")
       continue
 
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav {url} -o {base}.\%\(ext\)s"
+    print(cmd)
+    cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
+    if cp.returncode != 0 or not fn["wav"].exists():
+      print(f"Failed to download the video: url = {url}")
+      continue
+
     # wav -> wav16k (resampling to 16kHz, 1ch)
     try:
-      if fn["txt"].stat().st_size == 0:
-        empty_queue.put(videoid)
-        fn["txt"].unlink()
-      else:
-        subprocess.run("ffmpeg -i {} -ac 1 -y {}".format(fn["wav"], fn["wav_org"]), shell=True, universal_newlines=True)
+      subprocess.run("ffmpeg -i {} -ac 1 -y {}".format(fn["wav"], fn["wav_org"]), shell=True, universal_newlines=True)
       #shutil.move(fn["wav"], fn["wav_org"])
       '''
       wav = pydub.AudioSegment.from_file(fn["wav"], format = "wav")
