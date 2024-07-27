@@ -33,10 +33,10 @@ python scripts/make_search_word.py https://kaikki.org/dictionary/Lao/kaikki.org-
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
 
 4）检查是视频是否有字幕
-nohup python -u scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-pages-articles-multistream-index.txt --checkpoint sub/ja/jawiki-latest-pages-articles-multistream-index.csv --proxies 192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890 > ja.log 2>&1 &
+nohup python -u scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-pages-articles-multistream-index.txt --checkpoint sub/ja/jawiki-latest-pages-articles-multistream-index.csv --proxies 192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890 192.168.8.119:7890 192.168.8.188:7890 > ja.log 2>&1 &
 
 5）下载视频
-nohup python -u scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-multistream-index.csv --outdir /usr/local/ocr/jtubespeech/video --proxies 192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890 > ja.log 2>&1 &
+nohup python -u scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-multistream-index.csv --outdir /usr/local/ocr/jtubespeech/video --proxies 192.168.8.23:7890 192.168.8.123:7890 192.168.8.25:7890 192.168.8.119:7890 192.168.8.188:7890 > ja.log 2>&1 &
 
 6）对齐文本与声音
 export CUDA_VISIBLE_DEVICES=1
