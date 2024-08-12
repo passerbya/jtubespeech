@@ -38,7 +38,9 @@ def obtain_channelid(videoid: str) -> str:
   subprocess.run(f"wget {url} -O {fn_html}", shell=True)
 
   # obtain ID
-  html = "".join(open(fn_html, "r").readlines())
+  with open(fn_html, "r") as f:
+    lines = f.readlines()
+  html = "".join(lines)
   try:
     # only Japanese
     channelid = re.findall(r"canonicalBaseUrl\":\"/channel/([\w\_\-]+?)\"\}\},\"subscriberCountText\":\{\"accessibility\":\{\"accessibilityData\":\{\"label\":\"チャンネル登録者数", html)[0]

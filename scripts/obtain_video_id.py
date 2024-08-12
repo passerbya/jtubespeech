@@ -31,7 +31,9 @@ def obtain_video_id(lang, fn_word, outdir="videoid", wait_sec=0.2):
     fn_videoid.touch()
 
   with open(fn_videoid, "a") as f:
-    for word in tqdm(list(open(fn_word, "r").readlines())):
+    with open(fn_word, "r") as f1:
+      lines = f1.readlines()
+    for word in tqdm(list(lines)):
       try:
         # download search results
         url = make_query_url(word)
