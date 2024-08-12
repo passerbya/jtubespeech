@@ -56,14 +56,12 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
   error_queue.put('STOP')
 
 def write_worker(lang, fn_sub, subtitle_exists, in_queue):
-  for videoid, auto_lang, manu_lang in iter(in_queue.get, "STOP"):
-    subtitle_exists = pd.concat([subtitle_exists, pd.DataFrame([{"videoid": videoid, "auto": lang in auto_lang, "sub": lang in manu_lang}])], ignore_index=True)
-    # write current result
-    if len(subtitle_exists) % 10 == 0:
-      subtitle_exists.to_csv(fn_sub, index=None)
+  with open(str(fn_sub), 'a', encoding='utf-8') as f:
+    for videoid, auto_lang, manu_lang in iter(in_queue.get, "STOP"):
+      line = f'{videoid},{lang in auto_lang},{lang in manu_lang}\n'
+      f.write(line)
+      f.flush()
 
-  # write
-  subtitle_exists.to_csv(fn_sub, index=None)
   print('write done')
 
 def save_error_worker(error_fn, in_queue):
@@ -80,6 +78,7 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0
   # if file exists, load it and restart retrieving.
   if fn_checkpoint is None:
     subtitle_exists = pd.DataFrame({"videoid": [], "auto": [], "sub": []}, dtype=str)
+    subtitle_exists.to_csv(fn_sub, index=None)
   else:
     subtitle_exists = pd.read_csv(fn_checkpoint)
 
