@@ -55,7 +55,7 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
   print(proxy, 'done')
   error_queue.put('STOP')
 
-def write_worker(lang, fn_sub, subtitle_exists, in_queue):
+def write_worker(lang, fn_sub, in_queue):
   with open(str(fn_sub), 'a', encoding='utf-8') as f:
     for videoid, auto_lang, manu_lang in iter(in_queue.get, "STOP"):
       line = f'{videoid},{lang in auto_lang},{lang in manu_lang}\n'
@@ -101,7 +101,7 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0
   Process(
     target=write_worker,
     args=(
-      lang, fn_sub, subtitle_exists, done_queue
+      lang, fn_sub, done_queue
     ),
   ).start()
   for proxy in proxies:
