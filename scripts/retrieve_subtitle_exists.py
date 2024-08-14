@@ -125,6 +125,7 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0
     if videoid in vids or videoid in error_vids:
       continue
     task_queue.put(videoid)
+    vids.add(videoid)
 
   for _ in proxies:
     task_queue.put("STOP")
