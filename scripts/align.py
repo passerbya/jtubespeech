@@ -339,7 +339,7 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
                     total += 1
                     diff1 = abs(utt_start - stime)
                     diff2 = abs(utt_end - etime)
-                    if diff1 > 2 or diff2 > 2:
+                    if diff1 > 1 or diff2 > 1:
                         skip_duration += utt_end - utt_start
                         print("large deviation", f'{stem}, skip {skip_duration}s', diff1, diff2, t)
                     else:
