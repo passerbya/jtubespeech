@@ -28,15 +28,15 @@ def parse_args():
 
 def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
-  cookie_file = f'cookies_{r}.txt'
-  shutil.copy('cookies.txt', cookie_file)
+  #cookie_file = f'cookies_{r}.txt'
+  #shutil.copy('cookies.txt', cookie_file)
   for videoid in iter(in_queue.get, "STOP"):
     # sleep
     if wait_sec > 0.01:
       time.sleep(wait_sec)
     url = make_video_url(videoid)
     try:
-      cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --list-subs --sub-lang {lang} --skip-download {url}"
+      cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --list-subs --sub-lang {lang} --skip-download {url}"
       #print(cmd)
       cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
       if cp.returncode != 0:
@@ -45,7 +45,7 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
           error_queue.put(videoid)
         elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
                 or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
-          print(f'Change {proxy} !!!', cp.stdout)
+          print(f'!!! Change {proxy} !!!', cp.stderr)
         continue
       result = cp.stdout
       #result = subprocess.check_output(cmd, shell=True, universal_newlines=True)
@@ -54,7 +54,7 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
     except:
       traceback.print_exc()
 
-  os.remove(cookie_file)
+  #os.remove(cookie_file)
   print(proxy, 'done')
   error_queue.put('STOP')
 
@@ -74,7 +74,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print('save error done')
 
-def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=2, fn_checkpoint=None):
+def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=1, fn_checkpoint=None):
   fn_sub = Path(outdir) / lang / f"{Path(fn_videoid).stem}.csv"
   fn_sub.parent.mkdir(parents=True, exist_ok=True)
 

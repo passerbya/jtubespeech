@@ -27,15 +27,15 @@ def parse_args():
 
 def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec, keep_org):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
-  cookie_file = f'cookies_{r}.txt'
-  shutil.copy('cookies.txt', cookie_file)
+  #cookie_file = f'cookies_{r}.txt'
+  #shutil.copy('cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
     # wait
     if wait_sec > 0.01:
       time.sleep(wait_sec)
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --skip-download --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --skip-download --write-sub {url} -o {base}.\%\(ext\)s"
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0:
       for f in glob.glob(f"{base}.{lang}*.vtt"):
@@ -46,7 +46,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
       elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout)\
               or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
         print(f"Failed to download the video: cmd = {cmd}")
-        print(f'Change {proxy} !!!', cp.stdout)
+        print(f'!!! Change {proxy} !!!', cp.stderr)
       continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
@@ -69,16 +69,16 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
       print(f"Falied to convert subtitle file to txt file: url = {url}, filename = {fn['vtt']}, error = {e}")
       continue
 
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --extract-audio --audio-format wav {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav {url} -o {base}.\%\(ext\)s"
     #print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0 or not fn["wav"].exists():
       if ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
               or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
         print(f"Failed to download the video: cmd = {cmd}")
-        print(f'Change {proxy} !!!', cp.stdout)
+        print(f'!!! Change {proxy} !!!', cp.stderr)
       else:
-        print(f"Failed to download the video: cmd = {cmd}", cp.stdout)
+        print(f"Failed to download the video: cmd = {cmd}", cp.stderr)
       continue
 
     # wav -> wav16k (resampling to 16kHz, 1ch)
@@ -98,7 +98,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
     if not keep_org:
       fn["wav"].unlink()
 
-  os.remove(cookie_file)
+  #os.remove(cookie_file)
   print(proxy, 'done')
   error_queue.put('STOP')
   empty_queue.put('STOP')
@@ -110,7 +110,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print(f'save {error_fn} done')
 
-def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=False):
+def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=1, keep_org=False):
   """
   Tips:
     If you want to download automatic subtitles instead of manual subtitles, please change as follows.
