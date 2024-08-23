@@ -30,6 +30,9 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
   cookie_file = f'cookies_{r}.txt'
   shutil.copy('cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
+    # wait
+    if wait_sec > 0.01:
+      time.sleep(wait_sec)
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --cookies {cookie_file} --sub-langs \"{lang}.*\" --skip-download --write-sub {url} -o {base}.\%\(ext\)s"
@@ -40,8 +43,9 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
       if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
               or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
         error_queue.put(videoid)
-      if 'ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout:
-        print(f"Failed to download the video: url = {url}")
+      elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout)\
+              or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
+        print(f"Failed to download the video: cmd = {cmd}")
         print(f'Change {proxy} !!!', cp.stdout)
       continue
     try:
@@ -69,7 +73,12 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
     #print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0 or not fn["wav"].exists():
-      print(f"Failed to download the video: url = {url}")
+      if ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
+              or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
+        print(f"Failed to download the video: cmd = {cmd}")
+        print(f'Change {proxy} !!!', cp.stdout)
+      else:
+        print(f"Failed to download the video: cmd = {cmd}", cp.stdout)
       continue
 
     # wav -> wav16k (resampling to 16kHz, 1ch)
@@ -89,10 +98,6 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
     if not keep_org:
       fn["wav"].unlink()
 
-    # wait
-    if wait_sec > 0.01:
-      time.sleep(wait_sec)
-
   os.remove(cookie_file)
   print(proxy, 'done')
   error_queue.put('STOP')
@@ -105,7 +110,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print(f'save {error_fn} done')
 
-def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=10, keep_org=False):
+def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=False):
   """
   Tips:
     If you want to download automatic subtitles instead of manual subtitles, please change as follows.

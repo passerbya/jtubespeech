@@ -31,6 +31,9 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
   cookie_file = f'cookies_{r}.txt'
   shutil.copy('cookies.txt', cookie_file)
   for videoid in iter(in_queue.get, "STOP"):
+    # sleep
+    if wait_sec > 0.01:
+      time.sleep(wait_sec)
     url = make_video_url(videoid)
     try:
       cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --list-subs --sub-lang {lang} --skip-download {url}"
@@ -40,7 +43,8 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
         if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
                 or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
           error_queue.put(videoid)
-        if 'ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout:
+        elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
+                or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
           print(f'Change {proxy} !!!', cp.stdout)
         continue
       result = cp.stdout
@@ -49,9 +53,6 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
       out_queue.put((videoid, auto_lang, manu_lang))
     except:
       traceback.print_exc()
-    # sleep
-    if wait_sec > 0.01:
-      time.sleep(wait_sec)
 
   os.remove(cookie_file)
   print(proxy, 'done')
@@ -73,7 +74,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print('save error done')
 
-def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0.2, fn_checkpoint=None):
+def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=2, fn_checkpoint=None):
   fn_sub = Path(outdir) / lang / f"{Path(fn_videoid).stem}.csv"
   fn_sub.parent.mkdir(parents=True, exist_ok=True)
 
