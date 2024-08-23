@@ -40,6 +40,8 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
         if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' in cp.stdout or 'Private video' in cp.stdout)) \
                 or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' in cp.stderr or 'Private video' in cp.stderr)):
           error_queue.put(videoid)
+        if 'ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout:
+          print(f'Change {proxy} !!!', cp.stdout)
         continue
       result = cp.stdout
       #result = subprocess.check_output(cmd, shell=True, universal_newlines=True)
