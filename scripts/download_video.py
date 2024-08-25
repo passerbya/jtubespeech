@@ -25,7 +25,7 @@ def parse_args():
   parser.add_argument("--keeporg",    action='store_true', default=False, help="keep original audio file.")
   return parser.parse_args(sys.argv[1:])
 
-def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec, keep_org):
+def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_limit_queue, wait_sec, keep_org):
   r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
   #cookie_file = f'cookies_{r}.txt'
   #shutil.copy('cookies.txt', cookie_file)
@@ -47,12 +47,21 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
               or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
         print(f"Failed to download the video: cmd = {cmd}")
         print(f'!!! Change {proxy} !!!', cp.stderr)
+      else:
+        print(cmd, cp.stderr)
       continue
+    else:
+      if 'does not pass filter' in cp.stdout or 'does not pass filter' in cp.stderr:
+        exceed_limit_queue.put(videoid)
+        continue
+      if 'no subtitles for the requested languages' in cp.stdout or 'no subtitles for the requested languages' in cp.stderr:
+        empty_queue.put(videoid)
+        continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
       shutil.move(f, fn["vtt"])
     except Exception as e:
-      #print(f"Failed to rename subtitle file. The download may have failed: url = {url}, filename = {base}.{lang}.vtt, error = {e}")
+      print(f"Failed to rename subtitle file.", cmd)
       continue
 
     # vtt -> txt (reformatting)
@@ -135,12 +144,24 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
       empty_queue.put(vid)
       empty_vids.add(vid)
 
+  exceed_limit_queue = Queue()
+  exceed_limit_fn = Path(f'videoid/exceed_limit/{lang}wiki-latest-pages-articles-multistream-index.txt')
+  if not exceed_limit_fn.exists():
+    exceed_limit_fn.parent.mkdir(parents=True, exist_ok=True)
+    exceed_limit_fn.touch()
+  exceed_limit_vids = set()
+  with open(str(exceed_limit_fn), "r") as f:
+    for line in f.readlines():
+      vid = line.strip()
+      exceed_limit_queue.put(vid)
+      exceed_limit_vids.add(vid)
+
   # Start worker processes
   for proxy in proxies:
     Process(
       target=download_worker,
       args=(
-        proxy, lang, task_queue, error_queue, empty_queue, wait_sec, keep_org
+        proxy, lang, task_queue, error_queue, empty_queue, exceed_limit_queue, wait_sec, keep_org
       ),
     ).start()
   Process(
@@ -155,8 +176,14 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
       empty_fn, empty_queue
     ),
   ).start()
+  Process(
+    target=save_error_worker,
+    args=(
+      exceed_limit_fn, exceed_limit_queue
+    ),
+  ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    if videoid in empty_vids or videoid in error_vids:
+    if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
       continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
