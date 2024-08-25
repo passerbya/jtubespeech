@@ -74,7 +74,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print('save error done')
 
-def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=1, fn_checkpoint=None):
+def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=2, fn_checkpoint=None):
   fn_sub = Path(outdir) / lang / f"{Path(fn_videoid).stem}.csv"
   fn_sub.parent.mkdir(parents=True, exist_ok=True)
 

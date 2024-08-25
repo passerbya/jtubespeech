@@ -69,6 +69,9 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
       print(f"Falied to convert subtitle file to txt file: url = {url}, filename = {fn['vtt']}, error = {e}")
       continue
 
+    # wait
+    if wait_sec > 0.01:
+      time.sleep(wait_sec)
     cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav {url} -o {base}.\%\(ext\)s"
     #print(cmd)
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
@@ -110,7 +113,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print(f'save {error_fn} done')
 
-def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=1, keep_org=False):
+def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=False):
   """
   Tips:
     If you want to download automatic subtitles instead of manual subtitles, please change as follows.
