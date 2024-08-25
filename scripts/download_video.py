@@ -35,7 +35,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
       time.sleep(wait_sec)
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --skip-download --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0:
       for f in glob.glob(f"{base}.{lang}*.vtt"):
@@ -67,21 +67,6 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, wait_sec,
         f.writelines([f"{t[0]:1.3f}\t{t[1]:1.3f}\t\"{t[2]}\"\n" for t in txt])
     except Exception as e:
       print(f"Falied to convert subtitle file to txt file: url = {url}, filename = {fn['vtt']}, error = {e}")
-      continue
-
-    # wait
-    if wait_sec > 0.01:
-      time.sleep(wait_sec)
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav {url} -o {base}.\%\(ext\)s"
-    #print(cmd)
-    cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
-    if cp.returncode != 0 or not fn["wav"].exists():
-      if ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
-              or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
-        print(f"Failed to download the video: cmd = {cmd}")
-        print(f'!!! Change {proxy} !!!', cp.stderr)
-      else:
-        print(f"Failed to download the video: cmd = {cmd}", cp.stderr)
       continue
 
     # wav -> wav16k (resampling to 16kHz, 1ch)
