@@ -34,11 +34,14 @@ def main():
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
 
     # Start worker processes
+    processes = []
     for i in range(NUMBER_OF_PROCESSES):
-        Process(
+        p = Process(
             target=separate_worker,
             args=(src, i, task_queue),
-        ).start()
+        )
+        p.start()
+        processes.append(p)
 
     for _dir in (src / 'txt').iterdir():
         if not _dir.is_dir():
@@ -58,6 +61,11 @@ def main():
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put("STOP")
+
+    # Ensure all processes finish execution
+    for p in processes:
+        if p.is_alive():
+            p.join()
 
     print("separate done.")
 
