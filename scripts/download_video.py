@@ -26,7 +26,7 @@ def parse_args():
   return parser.parse_args(sys.argv[1:])
 
 def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_limit_queue, wait_sec, keep_org):
-  r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
+  #r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
   #cookie_file = f'cookies_{r}.txt'
   #shutil.copy('cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
@@ -97,8 +97,6 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
 
   #os.remove(cookie_file)
   print(proxy, 'done')
-  error_queue.put('STOP')
-  empty_queue.put('STOP')
 
 def save_error_worker(error_fn, in_queue):
   with open(str(error_fn), "w") as f:
@@ -157,13 +155,16 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
       exceed_limit_vids.add(vid)
 
   # Start worker processes
+  processes = []
   for proxy in proxies:
-    Process(
+    p = Process(
       target=download_worker,
       args=(
         proxy, lang, task_queue, error_queue, empty_queue, exceed_limit_queue, wait_sec, keep_org
       ),
-    ).start()
+    )
+    p.start()
+    processes.append(p)
   Process(
     target=save_error_worker,
     args=(
@@ -200,6 +201,15 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
 
   for _ in proxies:
     task_queue.put('STOP')
+
+  # Ensure all processes finish execution
+  for p in processes:
+    if p.is_alive():
+      p.join()
+
+  error_queue.put('STOP')
+  empty_queue.put('STOP')
+  exceed_limit_queue.put('STOP')
 
   return Path(outdir) / lang
 

@@ -56,7 +56,6 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, wait_sec):
 
   #os.remove(cookie_file)
   print(proxy, 'done')
-  error_queue.put('STOP')
 
 def write_worker(lang, fn_sub, in_queue):
   with open(str(fn_sub), 'a', encoding='utf-8') as f:
@@ -107,13 +106,16 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=2
       lang, fn_sub, done_queue
     ),
   ).start()
+  processes = []
   for proxy in proxies:
-    Process(
+    p = Process(
       target=retrieve_worker,
       args=(
         proxy, lang, task_queue, done_queue, error_queue, wait_sec
       ),
-    ).start()
+    )
+    p.start()
+    processes.append(p)
   Process(
     target=save_error_worker,
     args=(
@@ -132,9 +134,14 @@ def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=2
 
   for _ in proxies:
     task_queue.put("STOP")
-  while not task_queue.empty() or not done_queue.empty():
-    time.sleep(20)
+
+  # Ensure all processes finish execution
+  for p in processes:
+    if p.is_alive():
+      p.join()
+
   done_queue.put("STOP")
+  error_queue.put('STOP')
   return fn_sub
 
 if __name__ == "__main__":

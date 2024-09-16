@@ -52,7 +52,7 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", type=Path, default=Path("/usr/local/ocr/5th_biz"))
+    parser.add_argument("--path", type=Path, default=Path("/usr/local/ocr/5th_biz"))
     args = parser.parse_args()
     src = args.path
     main()

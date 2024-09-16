@@ -69,7 +69,7 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", type=Path, default=Path("/usr/local/ocr/jtubespeech/video/vi"))
+    parser.add_argument("--path", type=Path, default=Path("/usr/local/ocr/jtubespeech/video/fa"))
     args = parser.parse_args()
     src = args.path
     main()

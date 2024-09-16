@@ -74,7 +74,7 @@ NUMBER_OF_PROCESSES = 2
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", type=Path, default=Path("/usr/local/ocr/5th_biz/zh"))
+    parser.add_argument("--path", type=Path, default=Path("/usr/local/ocr/5th_biz/zh"))
     args = parser.parse_args()
     src = args.path
     main()
