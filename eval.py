@@ -75,6 +75,9 @@ tokenizer = processor.tokenizer
 #model_name = "/usr/local/data/wav2vec2/exp_w2v2t_th_r-wav2vec2_s930"
 #accuracy: 0.7972061657032755 std:0.047374596106336236
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-th-v2"
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-large-mms-1b-thai-colab"
+#accuracy: 0.8294797687861272 std:0.030414083747207964
+#lang = 'th'
 #accuracy: 0.838150289017341 std:0.0370943559688119
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-th-cv11_0"
 #accuracy: 0.8439306358381503 std:0.03652105756318442
@@ -120,9 +123,9 @@ tokenizer = processor.tokenizer
 #accuracy: 0.7829204693611473 std:0.03950562118611839
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-large-xls-r-300m-ar"
 #accuracy: 0.8245614035087719 std:0.033106673133599204
-model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-arabic"
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-arabic"
 #accuracy: 0.8096166341780376 std:0.03187737182100164
-lang = 'ar'
+#lang = 'ar'
 
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-xlsr-multilingual-56"
 #lang = 'zh'
@@ -136,6 +139,17 @@ lang = 'ar'
 #model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-fa-colab"
 #accuracy: 0.9554778554778555 std:0.010990614392290057
 #lang = 'fa'
+
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-300m-khmer"
+#accuracy: 0.9814814814814815 std:0.0
+#lang = 'km'
+#model_name = "/usr/local/data/wav2vec2/wav2vec2-xls-r-1b-khmer"
+#accuracy: 0.9814814814814815 std:0.0
+#lang = 'km'
+model_name = "/usr/local/data/wav2vec2/wav2vec2-xlsr-khmer"
+#accuracy: 0.9814814814814815 std:0.0
+lang = 'km'
+
 
 print('loading ...')
 processor = Wav2Vec2Processor.from_pretrained(model_name)
@@ -166,8 +180,8 @@ def align_with_transcript(md5):
             spell = ''
             sep = ''
             for item in result:
-                hira = item['hira']
-                #hira = item['kana']
+                #hira = item['hira']
+                hira = item['kana']
                 spell += sep + hira
                 sep  = ' '
         else:
@@ -315,6 +329,7 @@ data = {'zh':['c1a8ee7a2db61a898a3a25ad548a3a61','c11af072f0d66300dd6147cb314018
         'pt':['5aa1518ed74aede11efde41ce51d3f03','5548800a9409a56f0de3b8baf69802c6','60c6db09c2ad4a66fcccee7dc4e421f7','73b9a030f563a56e31ce21ab2878bea1','1b78ebfd703606932c2a746306f96d99','dca6a2ab33920f0631868610119f2c72','8c75602e986e25174d10c7933b39b560','3a5e28dfff9c0475a6c9e8ab8aa65bf5','1f36c1a48abdfe2d2a75e0ee89b3253c','7e993139c36f92f4914778c5b2d26c3f','e71bd174ebeeb87e8326786646db79db','430965aeba72e3290d1ba6ab6c4aace5'],
         'ar':['dd245f768613ee840040a87291362c90','b239a8486ef16272e8330686255c7de3','31473bb25b94ccb24be91e2ed27bc356','a2c34d4f39c0eaee0fc3cf2b0264335b','a35ea818f846d8c9e9d99369198d8b4a'],
         'fa':['6HrKJ87RPi0','aJU8uGdbAaE','gUY8CGcnEhE','iIgfI0UaQs0','KAVaN8XGX7k','wK94ZHGbHIo'],
+        'km':['Bk74dS7mSxQ'],
         }
 for d in data[lang]:
     align_with_transcript(d)
