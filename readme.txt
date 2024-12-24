@@ -11,7 +11,7 @@ git clone git@hf.co:openai/whisper-large-v2
 安装python环境
 conda create -n jtubespeech python==3.10
 conda activate jtubespeech
-pip install torch==2.1.2 torchvision==0.17.2 torchaudio==2.1.2 torch-complex
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 torch-complex
 apt install gcc g++
 apt-get install ffmpeg
 pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation soundfile transformers
