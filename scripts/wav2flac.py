@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from torch.multiprocessing import Process, Queue
 
-def separate_worker(num, task_queue):
+def convert_worker(num, task_queue):
     outdir = src / 'temp'
     outdir.mkdir(parents=True, exist_ok=True)
     ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
@@ -32,7 +32,7 @@ def main():
     processes = []
     for i in range(NUMBER_OF_PROCESSES):
         p = Process(
-            target=separate_worker,
+            target=convert_worker,
             args=(i, task_queue),
         )
         p.start()

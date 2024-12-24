@@ -8,19 +8,21 @@ import shutil
 import re
 import regex
 
-from pathlib import Path
 import tempfile
 import subprocess
 import soundfile
 import ctc_segmentation
 import pykakasi
+from pathlib import Path
 from transformers import AutoProcessor, Wav2Vec2ForCTC, Wav2Vec2Processor, Wav2Vec2CTCTokenizer
 from tts_norm.normalizer import Normalizer
 from torch.multiprocessing import Process, Queue
 
 normalizer_map = {}
-ffmpegExe = "/usr/local/ffmpeg/bin/ffmpeg"
-ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
+#ffmpegExe = "/usr/local/ffmpeg/bin/ffmpeg"
+#ffprobeExe = "/usr/local/ffmpeg/bin/ffprobe"
+ffmpegExe = "/usr/bin/ffmpeg"
+ffprobeExe = "/usr/bin/ffprobe"
 
 
 def is_chinese(content):
@@ -49,15 +51,15 @@ def text_processing(utt_txt, _lang):
     txt, unnormalize, _ = normalizer.normalize(utt_txt)
     return txt, unnormalize
 
-def find_files(wavdir, txtdir):
+def find_files(flacdir, txtdir):
     files_dict = {}
     txt_dict = {}
     for item in txtdir.glob("**/*.txt"):
         txt_dict[item.stem] = item
-    for wav in wavdir.glob("**/*.wav"):
-        if wav.stem.endswith('_16k') or wav.stem.endswith('_24k'):
+    for flac in flacdir.glob("**/*.flac"):
+        if flac.stem.endswith('_16k'):
             continue
-        files_dict[wav.stem] = (wav, txt_dict[wav.stem])
+        files_dict[flac.stem] = (flac, txt_dict[flac.stem])
     return files_dict
 
 def format_times(ts):
@@ -70,17 +72,17 @@ def format_times(ts):
 
     return "%d:%02d:%02d" % (h, m, s)
 
-def listen_worker(in_queue, segment_file, wav_out):
+def listen_worker(in_queue, segment_file, flac_out):
     print("listen_worker started.")
 
-    for wav24k, subs in iter(in_queue.get, "STOP"):
-        print('listen_worker', segment_file, wav_out, wav24k, len(subs))
+    for flac, subs in iter(in_queue.get, "STOP"):
+        print('listen_worker', segment_file, flac_out, flac, len(subs))
         for sub in subs:
             rec_id = sub[0]
-            opath = wav_out / rec_id[0:2] / (rec_id + '.wav')
+            opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
             if not opath.parent.exists():
                 opath.parent.mkdir()
-            cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{wav24k}" -y "{opath}"'
+            cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{flac}" -y "{opath}"'
             subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,shell=True)
 
         with open(segment_file,'a',encoding='utf-8') as f:
@@ -140,8 +142,8 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
     elif "[UNK]" in vocab:
         unk_id = vocab["[UNK]"]
     print('load done')
-    for wav, txt in iter(in_queue.get, "STOP"):
-        stem = wav.stem
+    for flac, txt in iter(in_queue.get, "STOP"):
+        stem = flac.stem
         with open(txt) as f:
             lines = f.readlines()
         utterance_list = []
@@ -224,21 +226,14 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
 
         if len(timestamps) == 0:
             continue
-        wav16k = wav.parent / (wav.stem+'_16k.wav')
-        wav24k = wav.parent / (wav.stem+'_24k.wav')
-        if not wav16k.exists():
+        flac16k = flac.parent / (flac.stem+'_16k.flac')
+        if not flac16k.exists():
             with tempfile.TemporaryDirectory() as temp_dir_path:
-                temp_path = Path(temp_dir_path) / wav16k.name
-                cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
+                temp_path = Path(temp_dir_path) / flac16k.name
+                cmd = f'{ffmpegExe} -i "{flac}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
                 subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
-                shutil.move(temp_path, wav16k)
-        if not wav24k.exists():
-            with tempfile.TemporaryDirectory() as temp_dir_path:
-                temp_path = Path(temp_dir_path) / wav24k.name
-                cmd = f'{ffmpegExe} -i "{wav}" -vn -ar 24000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
-                subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
-                shutil.move(temp_path, wav24k)
-        audio, sample_rate = soundfile.read(wav16k)
+                shutil.move(temp_path, flac16k)
+        audio, sample_rate = soundfile.read(flac16k)
 
         # Run prediction, get logits and probabilities
         start = end = 0
@@ -370,11 +365,11 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
             print('skip:', stem, accuracy/total)
         else:
             print('pass:', stem, accuracy/total)
-            out_queue.put((wav24k,subs))
+            out_queue.put((flac,subs))
     print(f"align_worker {num} stopped")
 
 def align(
-    wavdir: Path,
+    flacdir: Path,
     txtdir: Path,
     output: Path,
     lang: str = 'en',
@@ -393,7 +388,7 @@ def align(
     print(len(seg_list))
 
     # find files
-    files_dict = find_files(wavdir, txtdir)
+    files_dict = find_files(flacdir, txtdir)
     num_files = len(files_dict)
     print(f"Found {num_files} files.")
 
@@ -428,10 +423,10 @@ def align(
 def get_parser():
     parser = argparse.ArgumentParser(description="CTC segmentation")
     parser.add_argument(
-        "--wavdir",
+        "--flacdir",
         type=Path,
         required=True,
-        help="WAV folder.",
+        help="FLAC folder.",
     )
     parser.add_argument(
         "--txtdir",
