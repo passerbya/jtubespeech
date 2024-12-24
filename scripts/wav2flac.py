@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # coding: utf-8
 
+import shlex
 import subprocess
 from pathlib import Path
 from torch.multiprocessing import Process, Queue
@@ -8,15 +9,12 @@ from torch.multiprocessing import Process, Queue
 def convert_worker(num, task_queue):
     outdir = src / 'temp'
     outdir.mkdir(parents=True, exist_ok=True)
-    ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
+    #ffmpeg_exe = '/usr/local/ffmpeg/bin/ffmpeg'
+    ffmpeg_exe = '/usr/bin/ffmpeg'
     for wav_dest, wav_src in iter(task_queue.get, "STOP"):
         temp_path = outdir / wav_dest.name
-        in_file = str(wav_src)
-        in_file = in_file.replace('$', '\$')
-        in_file = in_file.replace('"', '\\\"')
-        out_file = str(temp_path)
-        out_file = out_file.replace('$', '\$')
-        out_file = out_file.replace('"', '\\\"')
+        in_file = shlex.quote(str(wav_src))
+        out_file = shlex.quote(str(temp_path))
         cmd = f'{ffmpeg_exe} -i "{in_file}" -ac 1 -y "{out_file}"'
         print(cmd)
         subprocess.run(cmd, shell=True)
@@ -57,8 +55,8 @@ def main():
     print("convert done.")
 
 
-NUMBER_OF_PROCESSES = 3
+NUMBER_OF_PROCESSES = 6
 if __name__ == "__main__":
-    src = Path('/usr/local/ocr/jtubespeech/video/vi')
+    src = Path('/usr/local/ocr/5th_biz/zh/wav_org')
     main()
 
