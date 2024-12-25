@@ -410,8 +410,8 @@ def align(
 
     # Align
     for stem in files_dict.keys():
-        (wav, txt) = files_dict[stem]
-        task_queue.put((wav, txt))
+        (flac, txt) = files_dict[stem]
+        task_queue.put((flac, txt))
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put("STOP")
