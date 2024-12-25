@@ -1,19 +1,19 @@
+#!/usr/bin/python
+# coding: utf-8
+
 # Usage:
 # python dnsmos_local.py -t c:\temp\DNSChallenge4_Blindset -o DNSCh4_Blind.csv -p
 #
 
 import argparse
 import concurrent.futures
-import glob
-import os
 
+from pathlib import Path
 import librosa
 import numpy as np
-import numpy.polynomial.polynomial as poly
 import onnxruntime as ort
 import pandas as pd
 import soundfile as sf
-from requests import session
 from tqdm import tqdm
 
 SAMPLING_RATE = 16000
@@ -100,34 +100,19 @@ class ComputeScore:
         return clip_dict
 
 def main(args):
-    models = glob.glob(os.path.join(args.testset_dir, "*"))
-    audio_clips_list = []
-    p808_model_path = os.path.join('DNSMOS', 'model_v8.onnx')
-
-    if args.personalized_MOS:
-        primary_model_path = os.path.join('pDNSMOS', 'sig_bak_ovr.onnx')
-    else:
-        primary_model_path = os.path.join('DNSMOS', 'sig_bak_ovr.onnx')
-
-    compute_score = ComputeScore(primary_model_path, p808_model_path)
+    # 获取当前脚本所在目录
+    script_dir = Path(__file__).parent
+    # 定义模型路径
+    p808_model_path = script_dir / 'model_v8.onnx'
+    primary_model_path = script_dir / ('pDNSMOS' if args.personalized_MOS else 'DNSMOS') / 'sig_bak_ovr.onnx'
+    compute_score = ComputeScore(str(primary_model_path), str(p808_model_path))
 
     rows = []
-    clips = []
-    clips = glob.glob(os.path.join(args.testset_dir, "*.flac"))
     is_personalized_eval = args.personalized_MOS
     desired_fs = SAMPLING_RATE
-    for m in tqdm(models):
-        max_recursion_depth = 10
-        audio_path = os.path.join(args.testset_dir, m)
-        audio_clips_list = glob.glob(os.path.join(audio_path, "*.flac"))
-        while len(audio_clips_list) == 0 and max_recursion_depth > 0:
-            audio_path = os.path.join(audio_path, "**")
-            audio_clips_list = glob.glob(os.path.join(audio_path, "*.flac"))
-            max_recursion_depth -= 1
-        clips.extend(audio_clips_list)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_url = {executor.submit(compute_score, clip, desired_fs, is_personalized_eval): clip for clip in clips}
+        future_to_url = {executor.submit(compute_score, clip, desired_fs, is_personalized_eval): clip for clip in Path(args.testset_dir).rglob("*.flac")}
         for future in tqdm(concurrent.futures.as_completed(future_to_url)):
             clip = future_to_url[future]
             try:
@@ -139,8 +124,7 @@ def main(args):
 
     df = pd.DataFrame(rows)
     if args.csv_path:
-        csv_path = args.csv_path
-        df.to_csv(csv_path)
+        df.to_csv(args.csv_path, index=False)
     else:
         print(df.describe())
 
