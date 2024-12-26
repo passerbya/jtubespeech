@@ -62,7 +62,8 @@ def listen_worker(in_queue, segment_file, flac_out):
         with open(segment_file,'a',encoding='utf-8') as f:
             for sub in subs:
                 rec_id = sub[0]
-                line = f'{rec_id}\t{sub[3]}\t{sub[4]}\t0\n'
+                opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+                line = f'{opath}\t{sub[3]}\t{sub[4]}\t0\n'
                 f.write(line)
                 f.flush()
 
