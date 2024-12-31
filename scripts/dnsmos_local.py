@@ -164,7 +164,7 @@ def main():
     for clip in Path(args.testset_dir).rglob("*.flac"):
         if str(clip) in mos_list:
             continue
-        task_queue.put(clip)
+        task_queue.put(clip.resolve())
 
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
