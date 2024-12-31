@@ -16,9 +16,11 @@ apt install gcc g++
 apt-get install ffmpeg
 pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation soundfile transformers
 pip install pyarrow fastparquet
+pip install onnxruntime-gpu onnxruntime-tools
 pip install /usr/local/data/tts-norm/
 pip install /usr/local/corpus/penghu/work/VocalExtractor/
 
+nohup python -u scripts/dnsmos_local.py -t /usr/local/ocr/bilili/zh/flac -o /usr/local/ocr/bilili/zh/dnsmos.csv -p > dnsmos.log 2>&1 &
 
 1）youtube-dl异常
 https://github.com/ytdl-org/youtube-dl/issues/31530#Description

@@ -22,6 +22,7 @@ INPUT_LENGTH = 9.01
 class ComputeScore:
     def __init__(self, primary_model_path, p808_model_path) -> None:
         self.onnx_sess = ort.InferenceSession(primary_model_path)
+        print("Current providers:", self.onnx_sess.get_providers())
         self.p808_onnx_sess = ort.InferenceSession(p808_model_path)
         
     def audio_melspec(self, audio, n_mels=120, frame_size=320, hop_length=160, sr=16000, to_db=True):
@@ -50,7 +51,7 @@ class ComputeScore:
         aud, input_fs = sf.read(fpath)
         fs = sampling_rate
         if input_fs != fs:
-            audio = librosa.resample(aud, input_fs, fs)
+            audio = librosa.resample(aud, orig_sr=input_fs, target_sr=fs)
         else:
             audio = aud
         actual_audio_len = len(audio)
