@@ -6,7 +6,6 @@
 #
 
 import argparse
-import concurrent.futures
 
 from pathlib import Path
 import librosa
@@ -14,14 +13,17 @@ import numpy as np
 import onnxruntime as ort
 import pandas as pd
 import soundfile as sf
+import time
+import json
 from tqdm import tqdm
+from torch.multiprocessing import Process, Queue
 
 SAMPLING_RATE = 16000
 INPUT_LENGTH = 9.01
 
 class ComputeScore:
-    def __init__(self, primary_model_path, p808_model_path) -> None:
-        providers = [('CUDAExecutionProvider', {'gpu_mem_limit': 8 * 1024 * 1024 * 1024, 'arena_extend_strategy': 'kNextPowerOfTwo'}), 'CPUExecutionProvider']
+    def __init__(self, primary_model_path, p808_model_path, device_id=0) -> None:
+        providers = [('CUDAExecutionProvider', {'device_id': device_id}), 'CPUExecutionProvider']
         self.onnx_sess = ort.InferenceSession(primary_model_path, providers=providers)
         print("Current providers:", self.onnx_sess.get_providers())
         self.p808_onnx_sess = ort.InferenceSession(p808_model_path, providers=providers)
@@ -101,35 +103,78 @@ class ComputeScore:
         clip_dict['P808_MOS'] = np.mean(predicted_p808_mos) #WenetSpeech4TTS Premium>4.0  Standard>3.8  Basic>3.6
         return clip_dict
 
-def main(args):
+def listen_worker(in_queue, jsonl_file):
+    print("listen_worker started.")
+
+    for clip_dict in iter(in_queue.get, "STOP"):
+        print('listen_worker', clip_dict['filename'], clip_dict['OVRL'], clip_dict['P808_MOS'])
+        with open(jsonl_file,'a',encoding='utf-8') as f:
+            clip_dict = {key: float(value) if isinstance(value, np.float32) else value for key, value in clip_dict.items()}
+            line = json.dumps(clip_dict)
+            f.write(f'{line}\n')
+            f.flush()
+
+    print("listen_worker ended.")
+
+def compute_worker(in_queue, out_queue, primary_model_path, p808_model_path, num):
+    print(f"compute_worker {num} started")
+    print('loading ...')
+    compute_score = ComputeScore(primary_model_path, p808_model_path, num)
+    print('load done')
+    is_personalized_eval = args.personalized_MOS
+    desired_fs = SAMPLING_RATE
+    for flac in iter(in_queue.get, "STOP"):
+        clip_dict = compute_score(str(flac), desired_fs, is_personalized_eval)
+        out_queue.put(clip_dict)
+    print(f"align_worker {num} stopped")
+
+def main():
     # 获取当前脚本所在目录
     script_dir = Path(__file__).parent
     # 定义模型路径
-    p808_model_path = script_dir / 'model_v8.onnx'
-    primary_model_path = script_dir / ('pDNSMOS' if args.personalized_MOS else 'DNSMOS') / 'sig_bak_ovr.onnx'
-    compute_score = ComputeScore(str(primary_model_path), str(p808_model_path))
+    p808_model_path = str(script_dir / 'model_v8.onnx')
+    primary_model_path = str(script_dir / ('pDNSMOS' if args.personalized_MOS else 'DNSMOS') / 'sig_bak_ovr.onnx')
 
-    rows = []
-    is_personalized_eval = args.personalized_MOS
-    desired_fs = SAMPLING_RATE
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_url = {executor.submit(compute_score, clip, desired_fs, is_personalized_eval): clip for clip in Path(args.testset_dir).rglob("*.flac")}
-        for future in tqdm(concurrent.futures.as_completed(future_to_url)):
-            clip = future_to_url[future]
-            try:
-                data = future.result()
-            except Exception as exc:
-                print('%r generated an exception: %s' % (clip, exc))
-            else:
-                rows.append(data)            
-
-    df = pd.DataFrame(rows)
-    if args.csv_path:
-        df.to_csv(args.csv_path, index=False)
+    jsonl_file = Path(args.csv_path)
+    if jsonl_file.exists():
+        with open(jsonl_file) as f:
+            mos_list = f.readlines()
+        mos_list = set([json.loads(item.strip())['filename'] for item in mos_list])
     else:
-        print(df.describe())
+        mos_list = set()
+        jsonl_file.touch()
+    print(len(mos_list))
 
+    task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
+    done_queue = Queue()
+
+    # Start worker processes
+    Process(
+        target=listen_worker,
+        args=(
+            done_queue,
+            jsonl_file
+        ),
+    ).start()
+
+    for i in range(NUMBER_OF_PROCESSES):
+        Process(target=compute_worker, args=(task_queue, done_queue, primary_model_path, p808_model_path, i)).start()
+
+
+    for clip in Path(args.testset_dir).rglob("*.flac"):
+        if str(clip) in mos_list:
+            continue
+        task_queue.put(clip)
+
+    # Tell child processes to stop
+    for i in range(NUMBER_OF_PROCESSES):
+        task_queue.put("STOP")
+    while not task_queue.empty() or not done_queue.empty():
+        time.sleep(20)
+    done_queue.put("STOP")
+    print("compute done.")
+
+NUMBER_OF_PROCESSES = 1
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', "--testset_dir", default='.', 
@@ -140,4 +185,4 @@ if __name__=="__main__":
     
     args = parser.parse_args()
 
-    main(args)
+    main()
