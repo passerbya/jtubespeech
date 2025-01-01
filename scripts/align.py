@@ -13,6 +13,7 @@ import subprocess
 import soundfile
 import ctc_segmentation
 import pykakasi
+import torch
 from pathlib import Path
 from transformers import AutoProcessor, Wav2Vec2ForCTC, Wav2Vec2Processor, Wav2Vec2CTCTokenizer
 from tts_norm.normalizer import Normalizer
@@ -99,7 +100,7 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
     print(f"align_worker {num} started")
     global skip_duration
     batch_size = 1
-    device = torch.device(f"cuda:{num}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{num % torch.cuda.device_count()}" if torch.cuda.is_available() else "cpu")
     print(device)
     print('loading ...')
     if lang == 'zh':

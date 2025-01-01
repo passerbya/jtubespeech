@@ -15,6 +15,7 @@ import pandas as pd
 import soundfile as sf
 import time
 import json
+import torch
 from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
 
@@ -22,8 +23,8 @@ SAMPLING_RATE = 16000
 INPUT_LENGTH = 9.01
 
 class ComputeScore:
-    def __init__(self, primary_model_path, p808_model_path, device_id=0) -> None:
-        providers = [('CUDAExecutionProvider', {'device_id': device_id}), 'CPUExecutionProvider']
+    def __init__(self, primary_model_path, p808_model_path, num=0) -> None:
+        providers = [('CUDAExecutionProvider', {'device_id': num % torch.cuda.device_count()}), 'CPUExecutionProvider']
         self.onnx_sess = ort.InferenceSession(primary_model_path, providers=providers)
         print("Current providers:", self.onnx_sess.get_providers())
         self.p808_onnx_sess = ort.InferenceSession(p808_model_path, providers=providers)

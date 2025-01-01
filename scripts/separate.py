@@ -21,9 +21,10 @@ def delete_folder(pth) :
             sub.unlink()
     pth.rmdir()
 
-def separate_worker(_src, _checkpoint_dir, cuda_num, task_queue):
+def separate_worker(_src, _checkpoint_dir, num, task_queue):
     #outdir = _src / 'temp'
-    model = VocalExtractor(str(_checkpoint_dir/'checkpoint.pkl'), str(_checkpoint_dir/'config.yml'), device=f"cuda:{cuda_num}")
+    print(f"separate_worker {num} started")
+    model = VocalExtractor(str(_checkpoint_dir/'checkpoint.pkl'), str(_checkpoint_dir/'config.yml'), device=f"cuda:{num % torch.cuda.device_count()}")
     for wav_dest, wav_src in iter(task_queue.get, "STOP"):
         if wav_dest.exists():
             continue
@@ -39,7 +40,7 @@ def separate_worker(_src, _checkpoint_dir, cuda_num, task_queue):
         if sr != model.sampling_rate: y = resample(y, sr, model.sampling_rate)
         vocal, _ = model(y)
         torchaudio.save(str(wav_dest), vocal, model.sampling_rate, bits_per_sample=16, format='flac')
-    print(cuda_num, 'done')
+    print(num, 'done')
 
 def main():
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
@@ -49,7 +50,7 @@ def main():
     for i in range(NUMBER_OF_PROCESSES):
         p = Process(
             target=separate_worker,
-            args=(src, checkpoint_dir, i % torch.cuda.device_count(), task_queue),
+            args=(src, checkpoint_dir, i, task_queue),
         )
         p.start()
         processes.append(p)
