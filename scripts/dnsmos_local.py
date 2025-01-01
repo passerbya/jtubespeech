@@ -127,7 +127,7 @@ def compute_worker(in_queue, out_queue, primary_model_path, p808_model_path, num
     for flac in iter(in_queue.get, "STOP"):
         clip_dict = compute_score(str(flac), desired_fs, is_personalized_eval)
         out_queue.put(clip_dict)
-    print(f"align_worker {num} stopped")
+    print(f"compute_worker {num} stopped")
 
 def main():
     # 获取当前脚本所在目录
