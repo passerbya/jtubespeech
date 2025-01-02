@@ -6,7 +6,7 @@ import json
 import os
 
 
-def filter_tsv_by_jsonl(tsv_path, jsonl_path, output_path, threshold=3.6):
+def filter_tsv_by_jsonl(tsv_path, jsonl_path, output_path):
     # Load JSONL data into a dictionary with filename as the key
     jsonl_data = {}
     with open(jsonl_path, 'r', encoding='utf-8') as jsonl_file:
@@ -14,14 +14,14 @@ def filter_tsv_by_jsonl(tsv_path, jsonl_path, output_path, threshold=3.6):
             record = json.loads(line.strip())
             jsonl_data[record['filename']] = record
 
-    # Process the TSV file and filter entries based on P808_MOS
+    # Process the TSV file and filter entries based on P835 MOS
     filtered_lines = []
     with open(tsv_path, 'r', encoding='utf-8') as tsv_file:
         for line in tsv_file:
             parts = line.strip().split('\t')
             if parts[0] in jsonl_data:
                 record = jsonl_data[parts[0]]
-                if record.get('P808_MOS', 0) > threshold:
+                if record.get('OVRL', 0) > 3.2 or record.get('P808_MOS', 0) > 3.6:
                     filtered_lines.append(line.strip())
 
     # Write the filtered lines to the output TSV file
@@ -37,7 +37,6 @@ def main():
     parser.add_argument("--tsv", required=True, help="Path to the input TSV file.")
     parser.add_argument("--jsonl", required=True, help="Path to the input JSONL file.")
     parser.add_argument("--output", required=True, help="Path to the output filtered TSV file.")
-    parser.add_argument("--threshold", type=float, default=3.6, help="P808_MOS threshold for filtering (default: 3.6).")
 
     args = parser.parse_args()
 
@@ -51,7 +50,7 @@ def main():
         return
 
     # Run the filtering process
-    filter_tsv_by_jsonl(args.tsv, args.jsonl, args.output, args.threshold)
+    filter_tsv_by_jsonl(args.tsv, args.jsonl, args.output)
 
 
 if __name__ == "__main__":
