@@ -7,7 +7,7 @@
 
 import argparse
 
-from pathlib import Path
+import os
 import librosa
 import numpy as np
 import onnxruntime as ort
@@ -16,6 +16,7 @@ import soundfile as sf
 import time
 import json
 import torch
+from pathlib import Path
 from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
 
@@ -129,6 +130,15 @@ def compute_worker(in_queue, out_queue, primary_model_path, p808_model_path, num
         out_queue.put(clip_dict)
     print(f"compute_worker {num} stopped")
 
+def scandir_generator(path):
+    """仅列出目录中的文件"""
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_file():
+                yield Path(entry.path)
+            elif entry.is_dir():
+                yield from scandir_generator(entry.path)
+
 def main():
     # 获取当前脚本所在目录
     script_dir = Path(__file__).parent
@@ -161,8 +171,9 @@ def main():
     for i in range(NUMBER_OF_PROCESSES):
         Process(target=compute_worker, args=(task_queue, done_queue, primary_model_path, p808_model_path, i)).start()
 
-
-    for clip in Path(args.testset_dir).rglob("*.flac"):
+    for clip in scandir_generator(args.testset_dir):
+        if clip.suffix != '.flac':
+            continue
         if str(clip) in mos_list:
             continue
         task_queue.put(clip.resolve())
