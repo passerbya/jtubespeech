@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Usage:
-# python dnsmos_local.py -t c:\temp\DNSChallenge4_Blindset -o DNSCh4_Blind.csv -p
+# python dnsmos_local.py -t c:\temp\DNSChallenge4_Blindset -o DNSCh4_Blind.jsonl -p
 #
 
 import argparse
@@ -146,7 +146,7 @@ def main():
     p808_model_path = str(script_dir / 'model_v8.onnx')
     primary_model_path = str(script_dir / ('pDNSMOS' if args.personalized_MOS else 'DNSMOS') / 'sig_bak_ovr.onnx')
 
-    jsonl_file = Path(args.csv_path)
+    jsonl_file = Path(args.jsonl_path)
     if jsonl_file.exists():
         with open(jsonl_file) as f:
             mos_list = f.readlines()
@@ -172,11 +172,12 @@ def main():
         Process(target=compute_worker, args=(task_queue, done_queue, primary_model_path, p808_model_path, i)).start()
 
     for clip in scandir_generator(args.testset_dir):
+        clip = clip.resolve()
         if clip.suffix != '.flac':
             continue
         if str(clip) in mos_list:
             continue
-        task_queue.put(clip.resolve())
+        task_queue.put(clip)
 
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
@@ -191,7 +192,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', "--testset_dir", default='.', 
                         help='Path to the dir containing audio clips in .flac to be evaluated')
-    parser.add_argument('-o', "--csv_path", default=None, help='Dir to the csv that saves the results')
+    parser.add_argument('-o', "--jsonl_path", default=None, help='Dir to the jsonl that saves the results')
     parser.add_argument('-p', "--personalized_MOS", action='store_true', 
                         help='Flag to indicate if personalized MOS score is needed or regular')
     
