@@ -78,25 +78,18 @@ def listen_worker(in_queue, segment_file, flac_out):
 
     for flac, subs in iter(in_queue.get, "STOP"):
         print('listen_worker', segment_file, flac_out, flac, len(subs))
-        for sub in subs:
-            rec_id = sub[0]
-            opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
-            if not opath.parent.exists():
-                opath.parent.mkdir()
-            cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{flac}" -y "{opath}"'
-            subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,shell=True)
-
         with open(segment_file,'a',encoding='utf-8') as f:
             for sub in subs:
                 rec_id = sub[0]
                 opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+                opath = opath.resolve()
                 line = f'{opath}\t{sub[3]}\t{sub[4]}\n'
                 f.write(line)
                 f.flush()
 
     print("listen_worker ended.")
 
-def align_worker(in_queue, out_queue, lang, seg_list, num=0):
+def align_worker(in_queue, out_queue, lang, seg_list, flac_out, num=0):
     print(f"align_worker {num} started")
     global skip_duration
     batch_size = 1
@@ -176,7 +169,9 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
         kks = pykakasi.kakasi()
         for i, utt in enumerate(utterance_list):
             rec_id = f"{stem}_{i:04}"
-            if rec_id in seg_list:
+            opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+            opath = opath.resolve()
+            if str(opath) in seg_list:
                 continue
             utt_start, utt_end, utt_txt = utt.split("\t", 2)
             key = f'{utt_start}_{utt_end}'
@@ -367,7 +362,14 @@ def align_worker(in_queue, out_queue, lang, seg_list, num=0):
             print('skip:', stem, accuracy/total)
         else:
             print('pass:', stem, accuracy/total)
-            out_queue.put((flac,subs))
+            for sub in subs:
+                rec_id = sub[0]
+                opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+                if not opath.parent.exists():
+                    opath.parent.mkdir()
+                cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{flac}" -y "{opath}"'
+                subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,shell=True)
+            out_queue.put((flac, subs))
     print(f"align_worker {num} stopped")
 
 def align(
@@ -408,7 +410,7 @@ def align(
     ).start()
 
     for i in range(NUMBER_OF_PROCESSES):
-        Process(target=align_worker, args=(task_queue, done_queue, lang, seg_list, i)).start()
+        Process(target=align_worker, args=(task_queue, done_queue, lang, seg_list, output, i)).start()
 
     # Align
     for stem in files_dict.keys():

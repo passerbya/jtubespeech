@@ -55,6 +55,7 @@ def listen_worker(in_queue, segment_file, flac_out):
             for sub in subs:
                 rec_id = sub[0]
                 opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+                opath = opath.resolve()
                 line = f'{opath}\t{sub[3]}\t{sub[4]}\n'
                 f.write(line)
                 f.flush()
@@ -91,7 +92,9 @@ def align_worker(in_queue, out_queue, seg_list, flac_out, num=0):
         subs = []
         for i, utt in enumerate(utterance_list):
             rec_id = f"{stem}_{i:04}"
-            if rec_id in seg_list:
+            opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+            opath = opath.resolve()
+            if str(opath) in seg_list:
                 continue
             utt_start, utt_end, utt_txt = utt.split("\t", 2)
             key = f'{utt_start}_{utt_end}'
