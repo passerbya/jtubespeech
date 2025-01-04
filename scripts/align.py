@@ -11,6 +11,7 @@ import regex
 import tempfile
 import subprocess
 import soundfile
+import librosa
 import ctc_segmentation
 import pykakasi
 import torch
@@ -223,14 +224,9 @@ def align_worker(in_queue, out_queue, lang, seg_list, flac_out, num=0):
 
         if len(timestamps) == 0:
             continue
-        flac16k = flac.parent / (flac.stem+'_16k.flac')
-        if not flac16k.exists():
-            with tempfile.TemporaryDirectory() as temp_dir_path:
-                temp_path = Path(temp_dir_path) / flac16k.name
-                cmd = f'{ffmpegExe} -i "{flac}" -vn -ar 16000 -ac 1 -sample_fmt s16 -y "{temp_path}"'
-                subprocess.run(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, shell=True)
-                shutil.move(temp_path, flac16k)
         audio, sample_rate = soundfile.read(flac16k)
+        if sample_rate != 16000:
+            audio = librosa.resample(aud, orig_sr=sample_rate, target_sr=16000)
 
         # Run prediction, get logits and probabilities
         start = end = 0
