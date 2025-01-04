@@ -51,14 +51,6 @@ def listen_worker(in_queue, segment_file, flac_out):
 
     for flac, subs in iter(in_queue.get, "STOP"):
         print('listen_worker', segment_file, flac_out, flac, len(subs))
-        for sub in subs:
-            rec_id = sub[0]
-            opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
-            if not opath.parent.exists():
-                opath.parent.mkdir()
-            cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{flac}" -y "{opath}"'
-            subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,shell=True)
-
         with open(segment_file,'a',encoding='utf-8') as f:
             for sub in subs:
                 rec_id = sub[0]
@@ -69,7 +61,7 @@ def listen_worker(in_queue, segment_file, flac_out):
 
     print("listen_worker ended.")
 
-def align_worker(in_queue, out_queue, seg_list, num=0):
+def align_worker(in_queue, out_queue, seg_list, flac_out, num=0):
     print(f"align_worker {num} started")
     global skip_duration
     for flac, txt in iter(in_queue.get, "STOP"):
@@ -129,7 +121,14 @@ def align_worker(in_queue, out_queue, seg_list, num=0):
 
             subs.append((rec_id, utt_start, utt_end, utt_txt, cleaned))
         if len(subs) > 0:
-            out_queue.put((flac,subs))
+            for sub in subs:
+                rec_id = sub[0]
+                opath = flac_out / rec_id[0:2] / (rec_id + '.flac')
+                if not opath.parent.exists():
+                    opath.parent.mkdir()
+                cut_cmd = f'{ffmpegExe} -ss {sub[1]} -to {sub[2]} -i "{flac}" -y "{opath}"'
+                subprocess.run(cut_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,shell=True)
+            out_queue.put((flac, subs))
 
     print(f"align_worker {num} stopped")
 
@@ -170,7 +169,7 @@ def align(
     ).start()
 
     for i in range(NUMBER_OF_PROCESSES):
-        Process(target=align_worker, args=(task_queue, done_queue, seg_list, i)).start()
+        Process(target=align_worker, args=(task_queue, done_queue, seg_list, output, i)).start()
 
     # Align
     for stem in files_dict.keys():
