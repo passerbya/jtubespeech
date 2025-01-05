@@ -13,6 +13,7 @@ import numpy as np
 import onnxruntime as ort
 import pandas as pd
 import soundfile as sf
+from soundfile import LibsndfileError
 import time
 import json
 import torch
@@ -126,8 +127,11 @@ def compute_worker(in_queue, out_queue, primary_model_path, p808_model_path, num
     is_personalized_eval = args.personalized_MOS
     desired_fs = SAMPLING_RATE
     for flac in iter(in_queue.get, "STOP"):
-        clip_dict = compute_score(str(flac), desired_fs, is_personalized_eval)
-        out_queue.put(clip_dict)
+        try:
+            clip_dict = compute_score(str(flac), desired_fs, is_personalized_eval)
+            out_queue.put(clip_dict)
+        except LibsndfileError:
+            print('LibsndfileError', flac)
     print(f"compute_worker {num} stopped")
 
 def scandir_generator(path):
