@@ -456,6 +456,6 @@ def main(cmd=None):
 NUMBER_OF_PROCESSES = 1
 skip_duration = 0
 pattern_space = regex.compile(r'\s')
-pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
+pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}]')
 if __name__ == "__main__":
     main()
