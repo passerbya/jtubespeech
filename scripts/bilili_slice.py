@@ -109,8 +109,8 @@ def align_worker(in_queue, out_queue, seg_list, flac_out, num=0):
             utt_txt = utt_txt.replace('"', "")
             utt_txt = pattern_space.sub(" ", utt_txt)
             cleaned, unnormalize = text_processing(utt_txt)
-            cleaned = pattern_punctuation.sub("", cleaned)
-            if len(cleaned) <= 2:
+            _utt_txt = pattern_punctuation.sub("", cleaned)
+            if len(_utt_txt) <= 2:
                 #去掉2个字或词以下的内容
                 continue
             if unnormalize:
@@ -217,6 +217,6 @@ def main(cmd=None):
 NUMBER_OF_PROCESSES = 1
 skip_duration = 0
 pattern_space = regex.compile(r'\s')
-pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}]')
+pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
 if __name__ == "__main__":
     main()

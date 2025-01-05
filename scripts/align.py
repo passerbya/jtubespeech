@@ -334,8 +334,8 @@ def align_worker(in_queue, out_queue, lang, seg_list, flac_out, num=0):
                         if utt_end - utt_start > 1.0:
                             #去掉1秒以下，2个字或词以下的内容
                             if lang in ('zh', 'ja', 'th'):
-                                utt_txt = pattern_punctuation.sub("", cleaned_texts_slice[i])
-                                if len(utt_txt) > 2:
+                                _utt_txt = pattern_punctuation.sub("", cleaned_texts_slice[i])
+                                if len(_utt_txt) > 2:
                                     accuracy += 1
                                     subs.append((rec_ids_slice[i], utt_start, utt_end, unm_transcripts_slice[i], cleaned_texts_slice[i]))
                             else:
@@ -456,6 +456,6 @@ def main(cmd=None):
 NUMBER_OF_PROCESSES = 1
 skip_duration = 0
 pattern_space = regex.compile(r'\s')
-pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}]')
+pattern_punctuation = regex.compile(r'[\p{P}\p{C}\p{S}\s]')
 if __name__ == "__main__":
     main()
