@@ -39,7 +39,31 @@ def separate_worker(_src, cuda_num, task_queue):
                           jobs=2,
                           segment=7.8)
 
-    for flac_dest, flac_src in iter(task_queue.get, "STOP"):
+    for flac_src in iter(task_queue.get, "STOP"):
+        if flac_src.is_dir() or flac_src.suffix != '.flac':
+            continue
+        flac_dest = src / 'speech_sep' / flac_src.relative_to(src / 'speech')
+        if flac_dest.exists():
+            continue
+        json_path = Path(str(flac_src.parent).replace('/speech/','/speech_json/')) / f'{flac_src.stem}.json'
+        if not json_path.exists():
+            continue
+        with open(str(json_path), 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        tags = set()
+        if isinstance(data, list):  # 处理JSON是列表的情况
+            for item in data:
+                text = item.get("text", "")
+                tags = set(extract_tags(text))
+        print(flac_src, tags)
+        #if 'Speech' not in tags:
+        #    continue
+        if 'Breath' in tags or 'Laughter' in tags or 'Applause' in tags or 'Sneeze' in tags or 'Cough' in tags or 'Cry' in tags:
+            continue
+        if 'ANGRY' not in tags and 'HAPPY' not in tags and 'SAD' not in tags and 'SURPRISED' not in tags and 'FEARFUL' not in tags and 'DISGUSTED' not in tags:
+            continue
+
+        flac_dest.parent.mkdir(parents=True, exist_ok=True)
         print(flac_dest, flac_src)
         channels = AudioFile(str(flac_src)).channels()
         origin, res = separator.separate_audio_file(str(flac_src))
@@ -71,29 +95,7 @@ def main():
 
     for lang_dir in (src/'speech').iterdir():
         for flac_path in scandir_generator(lang_dir/'wav_org'):
-            if flac_path.is_dir() or flac_path.suffix != '.flac':
-                continue
-            new_path = src / 'speech_sep' / flac_path.relative_to(src / 'speech')
-            if new_path.exists():
-                continue
-            json_path = Path(str(flac_path.parent).replace('/speech/','/speech_json/')) / f'{flac_path.stem}.json'
-            with open(str(json_path), 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            tags = set()
-            if isinstance(data, list):  # 处理JSON是列表的情况
-                for item in data:
-                    text = item.get("text", "")
-                    tags = set(extract_tags(text))
-            print(flac_path, tags)
-            #if 'Speech' not in tags:
-            #    continue
-            if 'Breath' in tags or 'Laughter' in tags or 'Applause' in tags or 'Sneeze' in tags or 'Cough' in tags or 'Cry' in tags:
-                continue
-            if 'ANGRY' not in tags and 'HAPPY' not in tags and 'SAD' not in tags and 'SURPRISED' not in tags and 'FEARFUL' not in tags and 'DISGUSTED' not in tags:
-                continue
-
-            new_path.parent.mkdir(parents=True, exist_ok=True)
-            task_queue.put((new_path, flac_path))
+            task_queue.put(flac_path)
 
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
