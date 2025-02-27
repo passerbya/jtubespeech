@@ -84,7 +84,7 @@ def main():
     print("separate done.")
 
 
-NUMBER_OF_PROCESSES = 2*torch.cuda.device_count()
+NUMBER_OF_PROCESSES = torch.cuda.device_count()
 if __name__ == "__main__":
     #torch.multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
