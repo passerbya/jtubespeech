@@ -191,7 +191,7 @@ def main():
     done_queue.put("STOP")
     print("compute done.")
 
-NUMBER_OF_PROCESSES = 1
+NUMBER_OF_PROCESSES = 3*torch.cuda.device_count()
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', "--testset_dir", default='.', 

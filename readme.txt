@@ -16,7 +16,7 @@ apt install gcc g++
 apt-get install ffmpeg
 pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation soundfile transformers
 pip install pyarrow fastparquet
-pip install onnxruntime-gpu onnxruntime-tools
+pip install onnxruntime-gpu onnxruntime-tools librosa scipy numpy
 pip install /usr/local/data/tts-norm/
 pip install /usr/local/corpus/penghu/work/VocalExtractor/
 

@@ -62,7 +62,8 @@ def main():
 
     for sub_dir in (src/'audio').iterdir():
         for mp3_path in scandir_generator(sub_dir):
-            if mp3_path.suffix != '.mp3' or str(mp3_path) not in singing_list:
+            #if mp3_path.suffix != '.mp3' or str(mp3_path) not in singing_list:
+            if mp3_path.suffix != '.mp3':
                 continue
             new_path = src / 'audio_sep' / mp3_path.relative_to(src / 'audio')
             new_path = new_path.parent / f'{new_path.stem}.flac'
