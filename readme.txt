@@ -46,6 +46,7 @@ nohup python -u scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles
 6）对齐文本与声音
 export CUDA_VISIBLE_DEVICES=1
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 
 

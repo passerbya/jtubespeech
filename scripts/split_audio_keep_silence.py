@@ -165,7 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--scale_factor", type=float, default=0.5, help="RMS 阈值缩放系数")
     parser.add_argument("--min_rms_threshold", type=float, default=0.0005, help="最小 RMS 阈值")
     parser.add_argument("--max_rms_threshold", type=float, default=0.01, help="最大 RMS 阈值")
-    parser.add_argument("--min_silence_duration", type=float, default=1, help="认为是长静音的最小时长 (秒)")
+    parser.add_argument("--min_silence_duration", type=float, default=1.2, help="认为是长静音的最小时长 (秒)")
 
     args = parser.parse_args()
 

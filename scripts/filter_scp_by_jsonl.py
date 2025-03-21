@@ -12,7 +12,7 @@ def filter_scp_by_jsonl(jsonl_path, output_path):
     with open(jsonl_path, 'r', encoding='utf-8') as jsonl_file:
         for line in jsonl_file:
             record = json.loads(line.strip())
-            if record.get('MOS_OVRL', 0) > 3.0: #P.804 2.75-->P.808 3.2
+            if record.get('MOS_OVRL', 0) > 2.75: #P.804 2.75-->P.808 3.2
                 filtered_lines.append(record['filename'].replace('/data1/', '/data2/'))
 
     # Write the filtered lines to the output SCP file
