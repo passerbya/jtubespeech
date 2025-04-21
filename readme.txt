@@ -14,7 +14,7 @@ conda activate jtubespeech
 pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 torch-complex
 apt install gcc g++
 apt-get install ffmpeg
-pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation soundfile transformers
+pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation transformers
 pip install pyarrow fastparquet
 pip install onnxruntime-gpu onnxruntime-tools librosa scipy numpy
 pip install /usr/local/data/tts-norm/
@@ -33,6 +33,7 @@ python scripts/make_search_word.py https://kaikki.org/dictionary/Korean/kaikki.o
 python scripts/make_search_word.py https://kaikki.org/dictionary/Persian/kaikki.org-dictionary-Persian.jsonl fa
 python scripts/make_search_word.py https://kaikki.org/dictionary/Khmer/kaikki.org-dictionary-Khmer.jsonl km
 python scripts/make_search_word.py https://kaikki.org/dictionary/Lao/kaikki.org-dictionary-Lao.jsonl lo
+python scripts/make_search_word.py https://kaikki.org/dictionary/Tagalog/kaikki.org-dictionary-Tagalog.jsonl tl
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
