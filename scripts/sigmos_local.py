@@ -112,6 +112,8 @@ def scandir_generator(path):
         for entry in it:
             if entry.is_file():
                 yield Path(entry.path)
+            elif entry.is_symlink() and Path(entry.path).resolve().is_file():
+                yield Path(entry.path)
             elif entry.is_dir():
                 yield from scandir_generator(entry.path)
 

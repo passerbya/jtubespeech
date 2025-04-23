@@ -40,7 +40,7 @@ def separate_worker(_src, cuda_num, task_queue):
     '''
     separator = Separator(model="htdemucs_ft",
                           device=f"cuda:{device_id}",
-                          shifts=4,
+                          shifts=10,
                           split=True,
                           overlap=0.25,
                           progress=True,
@@ -48,6 +48,7 @@ def separate_worker(_src, cuda_num, task_queue):
                           segment=7.8)
 
     for flac_src in iter(task_queue.get, "STOP"):
+        print(flac_src)
         if flac_src.is_dir() or flac_src.suffix != '.flac':
             continue
         flac_dest = _src / 'speech_sep' / flac_src.relative_to(_src / 'speech')
@@ -55,7 +56,6 @@ def separate_worker(_src, cuda_num, task_queue):
             continue
 
         flac_dest.parent.mkdir(parents=True, exist_ok=True)
-        print(flac_dest, flac_src)
         '''
         flac, sr = librosa.load(str(flac_src), mono=True, sr=44100)
         wav_vocal = vocal.separate_vocal(vocal_separator, flac, device, silent=False)[0]
@@ -75,6 +75,13 @@ def separate_worker(_src, cuda_num, task_queue):
     print(cuda_num, 'done')
 
 def main():
+    include_list = set()
+    if include is not None and include.exists():
+        with open(str(include), 'r', encoding='utf-8') as f:
+            for line in f.readlines():
+                dpath = Path(line.strip())
+                include_list.add(str(dpath.resolve()))
+    print(len(include_list))
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
 
     # Start worker processes
@@ -88,6 +95,8 @@ def main():
         processes.append(p)
 
     for flac_path in scandir_generator(src/'speech'):
+        if len(include_list) > 0 and str(flac_path.resolve()) not in include_list:
+            continue
         task_queue.put(flac_path)
 
     # Tell child processes to stop
@@ -102,12 +111,14 @@ def main():
     print("separate done.")
 
 
-NUMBER_OF_PROCESSES = torch.cuda.device_count()
+NUMBER_OF_PROCESSES = 3*torch.cuda.device_count()
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path", type=Path, default=Path("/usr/local/corpus/4th_biz/demo"))
+    parser.add_argument("--path", type=Path, default=Path("/usr/local/corpus/4th_biz"))
+    parser.add_argument("--list", type=Path, default=Path("/usr/local/ocr/lix001/audio_tagging/delete_lists_0422/4th_biz.scp/delete.list"), help="Optional path to the audio scp file list")
     args = parser.parse_args()
     src = args.path
+    include = args.list
     main()
 
