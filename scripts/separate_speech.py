@@ -116,7 +116,7 @@ if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type=Path, default=Path("/usr/local/corpus/4th_biz"))
-    parser.add_argument("--list", type=Path, default=Path("/usr/local/ocr/lix001/audio_tagging/delete_lists_0422/4th_biz.scp/delete.list"), help="Optional path to the audio scp file list")
+    parser.add_argument("--list", type=Path, help="Optional path to the audio scp file list")
     args = parser.parse_args()
     src = args.path
     include = args.list

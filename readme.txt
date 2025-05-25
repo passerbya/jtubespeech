@@ -2,6 +2,9 @@
 export http_proxy=http://192.168.3.100:7890
 export https_proxy=http://192.168.3.100:7890
 
+conda activate jtubespeech
+python3 -m pip install -U --pre "yt-dlp[default]"
+
 git bash获取代码
 ssh-agent bash
 ssh-add ~/.ssh/id_ed25519
@@ -34,6 +37,7 @@ python scripts/make_search_word.py https://kaikki.org/dictionary/Persian/kaikki.
 python scripts/make_search_word.py https://kaikki.org/dictionary/Khmer/kaikki.org-dictionary-Khmer.jsonl km
 python scripts/make_search_word.py https://kaikki.org/dictionary/Lao/kaikki.org-dictionary-Lao.jsonl lo
 python scripts/make_search_word.py https://kaikki.org/dictionary/Tagalog/kaikki.org-dictionary-Tagalog.jsonl tl
+python scripts/make_search_word.py https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl ar
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
