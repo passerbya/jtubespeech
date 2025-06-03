@@ -37,7 +37,7 @@ def obtain_video_id(lang, fn_word, outdir="videoid", wait_sec=0.2):
       try:
         # download search results
         url = make_query_url(word)
-        html = requests.get(url).content
+        html = requests.get(url, timeout=10).content
 
         # find video IDs
         videoids_found = [x.split(":")[1].strip("\"").strip(" ") for x in re.findall(r"\"videoId\":\"[\w\_\-]+?\"", str(html))]

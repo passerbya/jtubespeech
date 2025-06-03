@@ -38,6 +38,7 @@ python scripts/make_search_word.py https://kaikki.org/dictionary/Khmer/kaikki.or
 python scripts/make_search_word.py https://kaikki.org/dictionary/Lao/kaikki.org-dictionary-Lao.jsonl lo
 python scripts/make_search_word.py https://kaikki.org/dictionary/Tagalog/kaikki.org-dictionary-Tagalog.jsonl tl
 python scripts/make_search_word.py https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl ar
+python scripts/make_search_word.py https://kaikki.org/dictionary/Malay/kaikki.org-dictionary-Malay.jsonl ms
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
