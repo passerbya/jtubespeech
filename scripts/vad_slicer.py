@@ -72,7 +72,7 @@ def main():
 
     print("🎉 All done.")
 
-NUM_WORKERS = 3*torch.cuda.device_count()
+NUM_WORKERS = torch.cuda.device_count()
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')

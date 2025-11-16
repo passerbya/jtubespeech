@@ -15,11 +15,13 @@ git clone git@hf.co:openai/whisper-large-v2
 conda create -n jtubespeech python==3.10
 conda activate jtubespeech
 pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 torch-complex
+
 apt install gcc g++
 apt-get install ffmpeg
 pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation transformers
-pip install pyarrow fastparquet
-pip install onnxruntime-gpu onnxruntime-tools librosa scipy numpy
+pip install pyarrow==16.1.0 pandas==2.1.2 fastparquet
+conda install -c conda-forge cmake scikit-build-core
+pip install ml_dtypes==0.2.0 soxr==0.5.0.post1 onnxruntime-gpu onnxruntime-tools librosa scipy numpy
 pip install /usr/local/data/tts-norm/
 pip install /usr/local/corpus/penghu/work/VocalExtractor/
 
