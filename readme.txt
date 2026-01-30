@@ -55,6 +55,9 @@ nohup python -u scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-
 5）下载视频
 nohup python -u scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-multistream-index.csv --outdir /usr/local/ocr/jtubespeech/video --proxies 127.0.0.1:7890 > ja.log 2>&1 &
 
+export http_proxy=http://127.0.0.1:7890 && export https_proxy=http://127.0.0.1:7890 && yt-dlp -v --list-formats https://www.youtube.com/watch?v=yDc0_8emz7M
+export http_proxy=http://192.168.8.47:7890 && export https_proxy=http://192.168.8.47:7890 && yt-dlp -v --js-runtimes node --extractor-args "youtube:player-client=default,mweb;po_token=mweb.gvs+MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg==" https://www.youtube.com/watch?v=yDc0_8emz7M
+
 6）对齐文本与声音
 export CUDA_VISIBLE_DEVICES=1
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
