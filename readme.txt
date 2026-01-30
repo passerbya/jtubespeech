@@ -41,6 +41,10 @@ python scripts/make_search_word.py https://kaikki.org/dictionary/Lao/kaikki.org-
 python scripts/make_search_word.py https://kaikki.org/dictionary/Tagalog/kaikki.org-dictionary-Tagalog.jsonl tl
 python scripts/make_search_word.py https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl ar
 python scripts/make_search_word.py https://kaikki.org/dictionary/Malay/kaikki.org-dictionary-Malay.jsonl ms
+python scripts/make_search_word.py https://kaikki.org/dictionary/Thai/kaikki.org-dictionary-Thai.jsonl th
+python scripts/make_search_word.py https://kaikki.org/dictionary/Vietnamese/kaikki.org-dictionary-Vietnamese.jsonl vi
+python scripts/make_search_word.py https://kaikki.org/dictionary/Japanese/kaikki.org-dictionary-Japanese.jsonl ja
+
 
 3）从youtube搜索视频id
 nohup python scripts/obtain_video_id.py ja word/word/ja/jawiki-latest-pages-articles-multistream-index.txt > ja.log 2>&1 &
