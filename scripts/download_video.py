@@ -36,7 +36,8 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
     #cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg==\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
+    po_token = 'MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg=='
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     if cp.returncode != 0:
       for f in glob.glob(f"{base}.{lang}*.vtt"):
@@ -128,6 +129,10 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
   with open(str(error_fn), "r") as f:
     for line in f.readlines():
       vid = line.strip()
+      wav_org = Path(outdir) / lang / 'wav_org' / (make_basename(vid) + ".flac")
+      txt = Path(outdir) / lang / 'txt' / (make_basename(vid) + ".txt")
+      if wav_org.exists() and txt.exists():
+        continue
       error_queue.put(vid)
       error_vids.add(vid)
 
@@ -140,6 +145,10 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
   with open(str(empty_fn), "r") as f:
     for line in f.readlines():
       vid = line.strip()
+      wav_org = Path(outdir) / lang / 'wav_org' / (make_basename(vid) + ".flac")
+      txt = Path(outdir) / lang / 'txt' / (make_basename(vid) + ".txt")
+      if wav_org.exists() and txt.exists():
+        continue
       empty_queue.put(vid)
       empty_vids.add(vid)
 
@@ -152,6 +161,10 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
   with open(str(exceed_limit_fn), "r") as f:
     for line in f.readlines():
       vid = line.strip()
+      wav_org = Path(outdir) / lang / 'wav_org' / (make_basename(vid) + ".flac")
+      txt = Path(outdir) / lang / 'txt' / (make_basename(vid) + ".txt")
+      if wav_org.exists() and txt.exists():
+        continue
       exceed_limit_queue.put(vid)
       exceed_limit_vids.add(vid)
 
@@ -185,8 +198,8 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
     ),
   ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
-      continue
+    #if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
+    #  continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
       if k == 'wav_org':
