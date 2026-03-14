@@ -26,27 +26,30 @@ def parse_args():
   return parser.parse_args(sys.argv[1:])
 
 def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_limit_queue, wait_sec, keep_org):
-  r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
-  cookie_file = f'cookies_{r}.txt'
-  shutil.copy('cookies.txt', cookie_file)
   for videoid, fn in iter(task_queue.get, "STOP"):
     # wait
     if wait_sec > 0.01:
       time.sleep(wait_sec)
     url = make_video_url(videoid)
     base = fn["wav"].parent.joinpath(fn["wav"].stem)
+    r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
+    cookie_file = f'cookies_{r}.txt'
+    shutil.copy('cookies.txt', cookie_file)
     #cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     po_token = 'MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg=='
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
+    os.unlink(cookie_file)
     if cp.returncode != 0:
       for f in glob.glob(f"{base}.{lang}*.vtt"):
         os.remove(f)
       if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' or 'This video is not available' in cp.stdout or 'Private video' in cp.stdout or 'This video has been removed' in cp.stdout or 'Join this channel to get access' in cp.stdout or 'This video requires payment to watch' in cp.stdout)) \
               or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' or 'This video is not available' in cp.stderr or 'Private video' in cp.stderr or 'This video has been removed' in cp.stderr or 'Join this channel to get access' in cp.stderr or 'This video requires payment to watch' in cp.stderr)):
         error_queue.put(videoid)
-      elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout)\
-              or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr):
+      elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
+           or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr) \
+           or ('ERROR: [youtube]' in cp.stdout and 'The uploader has not made this video available in your country' in cp.stdout) \
+           or ('ERROR: [youtube]' in cp.stderr and 'The uploader has not made this video available in your country' in cp.stderr):
         print(f"Failed to download the video: cmd = {cmd}")
         print(f'!!! Change {proxy} !!!', cp.stderr)
       else:
