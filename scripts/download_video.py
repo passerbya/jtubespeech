@@ -37,7 +37,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
     shutil.copy('cookies.txt', cookie_file)
     #cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     po_token = 'MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg=='
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
+    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v -f \"b[ext=mp4]/ba\" --cookies {cookie_file} --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --sub-format \"vtt/srt/best\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
     os.unlink(cookie_file)
     if cp.returncode != 0:
@@ -201,8 +201,8 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
     ),
   ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    #if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
-    #  continue
+    if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
+      continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
       if k == 'wav_org':
