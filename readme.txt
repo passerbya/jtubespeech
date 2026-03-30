@@ -25,6 +25,11 @@ pip install ml_dtypes==0.2.0 soxr==0.5.0.post1 onnxruntime-gpu onnxruntime-tools
 pip install /usr/local/data/tts-norm/
 pip install /usr/local/corpus/penghu/work/VocalExtractor/
 
+conda create -n ytb_cookie python=3.10
+conda activate ytb_cookie
+pip3 install playwright
+python3 -m playwright install chromium
+
 nohup python -u scripts/dnsmos_local.py -t /usr/local/ocr/bilili/zh/flac -o /usr/local/ocr/bilili/zh/dnsmos.csv -p > dnsmos.log 2>&1 &
 
 1）youtube-dl异常
