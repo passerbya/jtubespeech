@@ -16,7 +16,7 @@ import requests
 
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-e96c0ab3540e4cff8365973a1b7d8d23")
 
-MODEL = "qwen3-asr-flash-filetrans"
+MODEL = "fun-asr"
 
 API_URL_UPLOADS = "https://dashscope.aliyuncs.com/api/v1/uploads"
 API_URL_SUBMIT = "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription"
@@ -76,7 +76,7 @@ def submit_transcription(file_url: str) -> str:
     payload = {
         "model": MODEL,
         "input": {
-            "file_url": file_url,
+            "file_urls": [file_url],
         },
         "parameters": {
             "channel_id": [0],
@@ -116,7 +116,7 @@ def wait_for_result(task_id: str, verbose: bool = True) -> dict[str, Any]:
 
 
 def download_transcription(result: dict[str, Any]) -> dict[str, Any]:
-    transcription_url = result.get("output", {}).get("result", {}).get("transcription_url")
+    transcription_url = result.get("output", {}).get("results", [])[0].get("transcription_url")
     if not transcription_url:
         return result
 
@@ -166,7 +166,7 @@ def transcribe_file(audio_path: Path, verbose: bool = True) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Upload local audio to OSS, call qwen3-asr-flash-filetrans, and print plain text."
+        description="Upload local audio to OSS, call fun-asr-flash-filetrans, and print plain text."
     )
     parser.add_argument("audio", help="local audio file path")
     args = parser.parse_args()

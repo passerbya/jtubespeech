@@ -37,8 +37,8 @@ def whisper_path_for(flac_path: Path) -> Path:
     return flac_path.with_suffix(".whisper.txt")
 
 
-def qwen_path_for(flac_path: Path) -> Path:
-    return flac_path.with_suffix(".qwen.txt")
+def fun_path_for(flac_path: Path) -> Path:
+    return flac_path.with_suffix(".fun.txt")
 
 
 def load_scp(scp_path: Path):
@@ -64,7 +64,7 @@ def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, left, right).ratio()
 
 
-def select_quality_pair(flac_path: Path, whisper_threshold: float, qwen_threshold: float):
+def select_quality_pair(flac_path: Path, whisper_threshold: float, fun_threshold: float):
     txt_path = txt_path_for(flac_path)
     if not txt_path.exists():
         return None, "missing_txt", 0.0
@@ -74,13 +74,13 @@ def select_quality_pair(flac_path: Path, whisper_threshold: float, qwen_threshol
         return None, "empty_txt", 0.0
 
     if need_text_normalization(txt):
-        qwen_path = qwen_path_for(flac_path)
-        if not qwen_path.exists():
-            return None, "missing_qwen", 0.0
-        score = similarity(txt, read_text(qwen_path))
-        if score >= qwen_threshold:
-            return [str(flac_path), str(qwen_path)], "qwen_ok", score
-        return None, "qwen_low_similarity", score
+        fun_path = fun_path_for(flac_path)
+        if not fun_path.exists():
+            return None, "missing_fun", 0.0
+        score = similarity(txt, read_text(fun_path))
+        if score >= fun_threshold:
+            return [str(flac_path), str(fun_path)], "fun_ok", score
+        return None, "fun_low_similarity", score
 
     whisper_path = whisper_path_for(flac_path)
     if not whisper_path.exists():
@@ -98,7 +98,7 @@ def main():
     parser.add_argument("--scp", type=Path, required=True, help=".scp file containing .flac paths.")
     parser.add_argument("--output", type=Path, required=True, help="Output .jsonl path.")
     parser.add_argument("--whisper-threshold", type=float, default=0.95)
-    parser.add_argument("--qwen-threshold", type=float, default=0.80)
+    parser.add_argument("--fun-threshold", type=float, default=0.80)
     parser.add_argument("--limit", type=int, default=0, help="Only check first N files, useful for testing.")
     args = parser.parse_args()
 
@@ -114,9 +114,9 @@ def main():
         "missing_whisper": 0,
         "whisper_low_similarity": 0,
         "whisper_ok": 0,
-        "missing_qwen": 0,
-        "qwen_low_similarity": 0,
-        "qwen_ok": 0,
+        "missing_fun": 0,
+        "fun_low_similarity": 0,
+        "fun_ok": 0,
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -130,7 +130,7 @@ def main():
             item, status, _score = select_quality_pair(
                 flac_path,
                 whisper_threshold=args.whisper_threshold,
-                qwen_threshold=args.qwen_threshold,
+                fun_threshold=args.fun_threshold,
             )
             stats[status] = stats.get(status, 0) + 1
             if item is None:
