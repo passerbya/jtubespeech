@@ -201,8 +201,8 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
     ),
   ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
-      continue
+    #if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
+    #  continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
       if k == 'wav_org':

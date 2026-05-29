@@ -21,7 +21,7 @@ def filter_tsv_by_jsonl(tsv_path, jsonl_path, output_path):
             parts = line.strip().split('\t')
             if parts[0] in jsonl_data:
                 record = jsonl_data[parts[0]]
-                if record.get('OVRL', 0) > 3.2 or record.get('P808_MOS', 0) > 3.6:
+                if record.get('SIG', 0) > 3.5 and record.get('BAK', 0) > 3.5 and record.get('P808_MOS', 0) > 3.6:
                     filtered_lines.append(line.strip())
 
     # Write the filtered lines to the output TSV file

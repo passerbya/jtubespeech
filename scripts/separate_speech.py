@@ -15,10 +15,6 @@ import soundfile as sf
 from pathlib import Path
 from torch.multiprocessing import Process, Queue
 
-def extract_tags(text):
-    """从文本中提取形如<|tag|>的标签"""
-    return re.findall(r'<\|(.*?)\|>', text)
-
 def scandir_generator(path):
     """仅列出目录中的文件"""
     with os.scandir(path) as it:
@@ -38,14 +34,26 @@ def separate_worker(_src, cuda_num, task_queue):
     voc_ft_model_path = str(script_dir / 'UVR-MDX-NET-Voc_FT.cuda.pt')
     vocal_separator = torch.jit.load(voc_ft_model_path).to(device)
     '''
-    separator = Separator(model="htdemucs_ft",
-                          device=f"cuda:{device_id}",
-                          shifts=10,
-                          split=True,
-                          overlap=0.25,
-                          progress=True,
-                          jobs=2,
-                          segment=7.8)
+    model_path = Path("/usr/local/corpus/penghu/work/voice_song_separation/demucs/outputs/xps/76024946_2stem")
+    separator = Separator(
+        model='best_singing_in_vocal',
+        repo=model_path,
+        device=f"cuda:{device_id}",
+        shifts=1,
+        split=True,
+        overlap=0.25,
+        progress=True,
+        jobs=2,
+        segment=23.76562358276644
+    )
+    kwargs = {
+        "samplerate": separator.samplerate,
+        "bitrate": 320,
+        "preset": 2,
+        "clip": 'rescale',
+        "as_float": False,
+        "bits_per_sample": 16,
+    }
 
     for flac_src in iter(task_queue.get, "STOP"):
         print(flac_src)
@@ -62,14 +70,6 @@ def separate_worker(_src, cuda_num, task_queue):
         sf.write(str(flac_dest), format="flac", data=wav_vocal.T, samplerate=44100)
         '''
         origin, res = separator.separate_audio_file(str(flac_src))
-        kwargs = {
-            "samplerate": separator.samplerate,
-            "bitrate": 320,
-            "preset": 2,
-            "clip": 'rescale',
-            "as_float": False,
-            "bits_per_sample": 16,
-        }
         source = res.pop('vocals')
         save_audio(source, str(flac_dest), **kwargs)
     print(cuda_num, 'done')
