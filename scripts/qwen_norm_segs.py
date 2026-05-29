@@ -15,7 +15,7 @@ from pathlib import Path
 from torch.multiprocessing import Process, Queue
 from tqdm import tqdm
 
-from fun_asr_oss import transcribe_file
+from qwen3_asr_oss import transcribe_file
 
 
 _NEED_TN_RE = re.compile(
@@ -42,7 +42,7 @@ def whisper_path_for(flac_path: Path) -> Path:
 
 
 def output_path_for(flac_path: Path) -> Path:
-    return flac_path.with_suffix(".fun.txt")
+    return flac_path.with_suffix(".qwen.txt")
 
 
 def iter_flac_files(root: Path):
@@ -78,7 +78,7 @@ def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, left, right).ratio()
 
 
-def should_run_fun(flac_path: Path, threshold: float) -> tuple[bool, str, float]:
+def should_run_qwen(flac_path: Path, threshold: float) -> tuple[bool, str, float]:
     txt_path = txt_path_for(flac_path)
     whisper_path = whisper_path_for(flac_path)
     if not txt_path.exists():
@@ -105,13 +105,13 @@ def process_one(flac_path: Path, threshold: float, overwrite: bool):
     if out_path.exists() and not overwrite:
         return "skip", flac_path, out_path, 1.0, "exists", None
 
-    ok, reason, score = should_run_fun(flac_path, threshold)
+    ok, reason, score = should_run_qwen(flac_path, threshold)
     if not ok:
         return "skip", flac_path, out_path, score, reason, None
 
     text = transcribe_file(flac_path, verbose=False).strip()
     if not text:
-        return "err", flac_path, out_path, score, "empty fun result", None
+        return "err", flac_path, out_path, score, "empty qwen result", None
 
     tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
     tmp_path.write_text(text, encoding="utf-8")
@@ -120,19 +120,19 @@ def process_one(flac_path: Path, threshold: float, overwrite: bool):
 
 
 def worker(num: int, task_queue: Queue, done_queue: Queue, threshold: float, overwrite: bool):
-    print(f"fun_worker {num} started", flush=True)
+    print(f"qwen_worker {num} started", flush=True)
     for flac_path in iter(task_queue.get, "STOP"):
         try:
             done_queue.put(process_one(Path(flac_path), threshold, overwrite))
         except Exception:
             done_queue.put(("err", Path(flac_path), output_path_for(Path(flac_path)), 0.0, "", traceback.format_exc()))
     done_queue.put(("STOP", None, None, 0.0, "", None))
-    print(f"fun_worker {num} stopped", flush=True)
+    print(f"qwen_worker {num} stopped", flush=True)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run fun-asr-flash-filetrans on segment flacs that need text normalization."
+        description="Run qwen3-asr-flash-filetrans on segment flacs that need text normalization."
     )
     parser.add_argument(
         "--root",
@@ -143,7 +143,7 @@ def main():
     parser.add_argument("--scp", type=Path, default=None, help="Optional .scp file of .flac files.")
     parser.add_argument("--workers", type=int, default=max(1, min(4, os.cpu_count() or 1)))
     parser.add_argument("--threshold", type=float, default=0.8, help="Minimum txt/whisper similarity.")
-    parser.add_argument("--overwrite", action="store_true", help="Re-run even when .fun.txt already exists.")
+    parser.add_argument("--overwrite", action="store_true", help="Re-run even when .qwen.txt already exists.")
     parser.add_argument("--limit", type=int, default=0, help="Only process the first N files, useful for testing.")
     args = parser.parse_args()
 
@@ -184,7 +184,7 @@ def main():
     skipped = already_done
     errors = 0
     stopped_workers = 0
-    with tqdm(total=len(task_files), desc="fun_norm") as pbar:
+    with tqdm(total=len(task_files), desc="qwen_norm") as pbar:
         while stopped_workers < len(workers):
             status, flac_path, out_path, score, reason, error_text = done_queue.get()
             if status == "STOP":
