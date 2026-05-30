@@ -110,7 +110,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print(f'save {error_fn} done')
 
-def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=False):
+def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=1, keep_org=False):
   """
   Tips:
     If you want to download automatic subtitles instead of manual subtitles, please change as follows.
