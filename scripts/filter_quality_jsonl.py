@@ -64,7 +64,12 @@ def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, left, right).ratio()
 
 
-def select_quality_pair(flac_path: Path, whisper_threshold: float, qwen_threshold: float):
+def select_quality_pair(
+    flac_path: Path,
+    whisper_threshold: float,
+    qwen_threshold: float,
+    allow_missing_whisper: bool,
+):
     txt_path = txt_path_for(flac_path)
     if not txt_path.exists():
         return None, "missing_txt", 0.0
@@ -84,6 +89,8 @@ def select_quality_pair(flac_path: Path, whisper_threshold: float, qwen_threshol
 
     whisper_path = whisper_path_for(flac_path)
     if not whisper_path.exists():
+        if allow_missing_whisper:
+            return [str(flac_path), str(txt_path)], "whisper_ok", 1
         return None, "missing_whisper", 0.0
     score = similarity(txt, read_text(whisper_path))
     if score >= whisper_threshold:
@@ -99,6 +106,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True, help="Output .jsonl path.")
     parser.add_argument("--whisper-threshold", type=float, default=0.95)
     parser.add_argument("--qwen-threshold", type=float, default=0.80)
+    parser.add_argument(
+        "--allow-missing-whisper",
+        action="store_true",
+        help="If .whisper.txt is missing for non-TN text, keep [flac, txt] directly.",
+    )
     parser.add_argument("--limit", type=int, default=0, help="Only check first N files, useful for testing.")
     args = parser.parse_args()
 
@@ -131,6 +143,7 @@ def main():
                 flac_path,
                 whisper_threshold=args.whisper_threshold,
                 qwen_threshold=args.qwen_threshold,
+                allow_missing_whisper=args.allow_missing_whisper,
             )
             stats[status] = stats.get(status, 0) + 1
             if item is None:

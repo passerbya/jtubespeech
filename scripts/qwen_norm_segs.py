@@ -78,19 +78,21 @@ def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, left, right).ratio()
 
 
-def should_run_qwen(flac_path: Path, threshold: float) -> tuple[bool, str, float]:
+def should_run_qwen(flac_path: Path, threshold: float, allow_missing_whisper: bool) -> tuple[bool, str, float]:
     txt_path = txt_path_for(flac_path)
     whisper_path = whisper_path_for(flac_path)
     if not txt_path.exists():
         return False, f"missing txt: {txt_path}", 0.0
-    if not whisper_path.exists():
-        return False, f"missing whisper: {whisper_path}", 0.0
 
     text = read_text(txt_path)
     if not text:
         return False, "empty txt", 0.0
     if not need_text_normalization(text):
         return False, "no normalization needed", 0.0
+    if not whisper_path.exists():
+        if allow_missing_whisper:
+            return True, "missing whisper, tn only", 1.0
+        return False, f"missing whisper: {whisper_path}", 0.0
 
     whisper_text = read_text(whisper_path)
     score = similarity(text, whisper_text)
@@ -99,13 +101,13 @@ def should_run_qwen(flac_path: Path, threshold: float) -> tuple[bool, str, float
     return True, "", score
 
 
-def process_one(flac_path: Path, threshold: float, overwrite: bool):
+def process_one(flac_path: Path, threshold: float, overwrite: bool, allow_missing_whisper: bool):
     flac_path = Path(flac_path)
     out_path = output_path_for(flac_path)
     if out_path.exists() and not overwrite:
         return "skip", flac_path, out_path, 1.0, "exists", None
 
-    ok, reason, score = should_run_qwen(flac_path, threshold)
+    ok, reason, score = should_run_qwen(flac_path, threshold, allow_missing_whisper)
     if not ok:
         return "skip", flac_path, out_path, score, reason, None
 
@@ -119,11 +121,18 @@ def process_one(flac_path: Path, threshold: float, overwrite: bool):
     return "ok", flac_path, out_path, score, "", None
 
 
-def worker(num: int, task_queue: Queue, done_queue: Queue, threshold: float, overwrite: bool):
+def worker(
+    num: int,
+    task_queue: Queue,
+    done_queue: Queue,
+    threshold: float,
+    overwrite: bool,
+    allow_missing_whisper: bool,
+):
     print(f"qwen_worker {num} started", flush=True)
     for flac_path in iter(task_queue.get, "STOP"):
         try:
-            done_queue.put(process_one(Path(flac_path), threshold, overwrite))
+            done_queue.put(process_one(Path(flac_path), threshold, overwrite, allow_missing_whisper))
         except Exception:
             done_queue.put(("err", Path(flac_path), output_path_for(Path(flac_path)), 0.0, "", traceback.format_exc()))
     done_queue.put(("STOP", None, None, 0.0, "", None))
@@ -143,6 +152,11 @@ def main():
     parser.add_argument("--scp", type=Path, default=None, help="Optional .scp file of .flac files.")
     parser.add_argument("--workers", type=int, default=max(1, min(4, os.cpu_count() or 1)))
     parser.add_argument("--threshold", type=float, default=0.8, help="Minimum txt/whisper similarity.")
+    parser.add_argument(
+        "--allow-missing-whisper",
+        action="store_true",
+        help="If .whisper.txt is missing, run Qwen when .txt needs text normalization.",
+    )
     parser.add_argument("--overwrite", action="store_true", help="Re-run even when .qwen.txt already exists.")
     parser.add_argument("--limit", type=int, default=0, help="Only process the first N files, useful for testing.")
     args = parser.parse_args()
@@ -171,7 +185,10 @@ def main():
     done_queue = Queue()
     workers = []
     for i in range(args.workers):
-        p = Process(target=worker, args=(i, task_queue, done_queue, args.threshold, args.overwrite))
+        p = Process(
+            target=worker,
+            args=(i, task_queue, done_queue, args.threshold, args.overwrite, args.allow_missing_whisper),
+        )
         p.start()
         workers.append(p)
 
