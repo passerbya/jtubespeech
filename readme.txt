@@ -108,14 +108,36 @@ python -u scripts/align.py \
  --wavdir /usr/local/corpus/4th_biz/pt/wav/ --txtdir /usr/local/corpus/4th_biz/pt/txt/ --output /usr/local/corpus/4th_biz/pt/segments/ --lang pt
 
 
-7）分离背景音乐
-python scripts/separate.py /usr/local/ocr/5th_biz/zh
+7）清洗数据
+分离背景音乐
+nohup python -u scripts/separate.py --path /usr/local/corpus/4th_biz/zh > sep_zh.log 2>&1 &
+
+对长视频进行分段
+nohup python -u scripts/segment.py --root /usr/local/corpus/4th_biz/zh > seg_zh.log 2>&1 &
+
+检测mos值
+nohup python -u scripts/dnsmos_local.py -t /usr/local/corpus/4th_biz/zh/segs/ -o /usr/local/corpus/4th_biz/zh/segs/dns_mos.jsonl > mos_zh.log 2>&1 &
+
+过滤mos值合格的音频到scp列表
+python -u scripts/filter_scp_by_jsonl.py --jsonl /usr/local/corpus/4th_biz/zh/segs/dns_mos.jsonl --output /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp
+
+whisper识别语音文本,生成.whisper.txt文件
+nohup python -u scripts/whisper_segs.py --scp /usr/local/corpus/4th_biz/zh/dns_mos.scp > 1.log 2>&1 &
+
+qwen3-asr-flash-filetrans模型识别需要规范化的音频,生成.qwen.txt文件
+nohup python -u scripts/qwen_norm_segs.py --root /usr/local/corpus/4th_biz/zh/segs --scp /usr/local/corpus/4th_biz/zh/dns_mos.scp > 1.log 2>&1 &
+B站、game数据txt文字准确率高，只需要执行asr进行规范化
+nohup python -u scripts/qwen_norm_segs.py --root /usr/local/corpus/game/zh --scp /usr/local/corpus/game/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
+nohup python -u scripts/qwen_norm_segs.py --root /usr/local/ocr/bilili/zh --scp /usr/local/ocr/bilili/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
+
+扫描生成音频与文本文件观对的jsonl
+nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/4th_biz/zh/segs --scp /usr/local/corpus/4th_biz/zh/dns_mos.scp --output /usr/local/corpus/4th_biz/zh/flac_txt.jsonl --skip-empty-txt > 1.log 2>&1 &
+开源数据集中直接生成jsonl，不进行whisper\qwen3 asr
+nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/hi_fi_tts_v0 --scp /usr/local/corpus/en/hi_fi_tts_v0/dns_mos.scp --output /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl --skip-empty-txt > 1.log 2>&1 &
+nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/LibriTTS-R --scp /usr/local/corpus/en/LibriTTS-R/dns_mos.scp --output /usr/local/corpus/en/LibriTTS-R/flac_txt.jsonl --txt-suffix .normalized.txt --skip-empty-txt > 1.log 2>&1 &
+nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/VCTK/wav48_silence_trimmed --txt-root /usr/local/corpus/en/VCTK/txt --scp /usr/local/corpus/en/VCTK/dns_mos.scp --output /usr/local/corpus/en/VCTK/flac_txt.jsonl --skip-empty-txt > 1.log 2>&1 &
 
 
-D:\语料\第四批语料\中文-单语\20100046_猫耳FM_铜钱 S21015
-包含以下特殊字符的要去掉
-♪
-^\w+：
-【】
-()
-[]
+统计jsonl中音频时长
+nohup python -u scripts/stat_jsonl_flac_duration.py /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl > 1.log 2>&1 &
+
