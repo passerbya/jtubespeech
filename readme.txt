@@ -122,16 +122,16 @@ nohup python -u scripts/dnsmos_local.py -t /usr/local/corpus/4th_biz/zh/segs/ -o
 python -u scripts/filter_scp_by_jsonl.py --jsonl /usr/local/corpus/4th_biz/zh/segs/dns_mos.jsonl --output /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp
 
 whisper识别语音文本,生成.whisper.txt文件
-nohup python -u scripts/whisper_segs.py --scp /usr/local/corpus/4th_biz/zh/dns_mos.scp > 1.log 2>&1 &
+nohup python -u scripts/whisper_segs.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp > 1.log 2>&1 &
 
 qwen3-asr-flash-filetrans模型识别需要规范化的音频,生成.qwen.txt文件
-nohup python -u scripts/qwen_norm_segs.py --root /usr/local/corpus/4th_biz/zh/segs --scp /usr/local/corpus/4th_biz/zh/dns_mos.scp > 1.log 2>&1 &
+nohup python -u scripts/qwen_norm_segs.py --root /usr/local/corpus/4th_biz/zh/segs --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp > 1.log 2>&1 &
 B站、game数据txt文字准确率高，只需要执行asr进行规范化
 nohup python -u scripts/qwen_norm_segs.py --root /usr/local/corpus/game/zh --scp /usr/local/corpus/game/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
 nohup python -u scripts/qwen_norm_segs.py --root /usr/local/ocr/bilili/zh --scp /usr/local/ocr/bilili/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
 
 扫描生成音频与文本文件观对的jsonl
-nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/4th_biz/zh/segs --scp /usr/local/corpus/4th_biz/zh/dns_mos.scp --output /usr/local/corpus/4th_biz/zh/flac_txt.jsonl --skip-empty-txt > 1.log 2>&1 &
+nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/4th_biz/zh/segs --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp --output /usr/local/corpus/4th_biz/zh/segs/flac_txt.jsonl --skip-empty-txt > 1.log 2>&1 &
 开源数据集中直接生成jsonl，不进行whisper\qwen3 asr
 nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/hi_fi_tts_v0 --scp /usr/local/corpus/en/hi_fi_tts_v0/dns_mos.scp --output /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl --skip-empty-txt > 1.log 2>&1 &
 nohup python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/LibriTTS-R --scp /usr/local/corpus/en/LibriTTS-R/dns_mos.scp --output /usr/local/corpus/en/LibriTTS-R/flac_txt.jsonl --txt-suffix .normalized.txt --skip-empty-txt > 1.log 2>&1 &
