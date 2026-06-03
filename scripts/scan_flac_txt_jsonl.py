@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from tqdm import tqdm
@@ -24,12 +25,23 @@ def load_scp(scp_path: Path):
                 yield Path(line)
 
 
-def txt_path_for(flac_path: Path, flac_root: Path, txt_root: Path | None, txt_suffix: str) -> Path:
+def txt_path_for(
+    flac_path: Path,
+    flac_root: Path,
+    txt_root: Path | None,
+    txt_suffix: str,
+    strip_stem_regex: re.Pattern[str] | None,
+) -> Path:
     if txt_root is None:
-        return flac_path.with_suffix(txt_suffix)
+        base_path = flac_path
+    else:
+        rel_path = flac_path.relative_to(flac_root)
+        base_path = txt_root / rel_path
 
-    rel_path = flac_path.relative_to(flac_root)
-    return txt_root / rel_path.with_suffix(txt_suffix)
+    stem = base_path.stem
+    if strip_stem_regex is not None:
+        stem = strip_stem_regex.sub("", stem)
+    return base_path.with_name(stem + txt_suffix)
 
 
 def has_text(path: Path) -> bool:
@@ -60,6 +72,11 @@ def main():
         help="Text filename suffix replacing .flac, for example .txt, .normalized.txt, or .original.txt.",
     )
     parser.add_argument(
+        "--strip-stem-regex",
+        default=None,
+        help="Optional regex removed from the .flac stem before building txt name, for example _mic[0-9]+$.",
+    )
+    parser.add_argument(
         "--skip-empty-txt",
         action="store_true",
         help="Skip pairs whose .txt file exists but is empty after stripping whitespace.",
@@ -77,6 +94,10 @@ def main():
         raise SystemExit(f"txt-root is not a directory: {txt_root}")
     if not args.txt_suffix.startswith("."):
         raise SystemExit(f"txt-suffix must start with '.': {args.txt_suffix}")
+    try:
+        strip_stem_regex = re.compile(args.strip_stem_regex) if args.strip_stem_regex else None
+    except re.error as exc:
+        raise SystemExit(f"bad strip-stem-regex: {exc}") from exc
 
     if args.scp is None:
         flac_files = sorted(iter_flac_files(flac_root))
@@ -101,7 +122,7 @@ def main():
             if not flac_path.exists():
                 stats["missing_flac"] += 1
                 continue
-            txt_path = txt_path_for(flac_path, flac_root, txt_root, args.txt_suffix)
+            txt_path = txt_path_for(flac_path, flac_root, txt_root, args.txt_suffix, strip_stem_regex)
             if not txt_path.exists():
                 stats["missing_txt"] += 1
                 continue
