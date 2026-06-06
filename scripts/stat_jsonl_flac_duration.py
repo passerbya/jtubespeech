@@ -50,7 +50,7 @@ def progress_output_path(jsonl_path: Path) -> Path:
     return jsonl_path.with_suffix(".duration.jsonl")
 
 
-def load_done(progress_path: Path):
+def load_done(progress_path: Path, flac_paths):
     done = {}
     if not progress_path.exists():
         return done
@@ -65,7 +65,7 @@ def load_done(progress_path: Path):
             except json.JSONDecodeError:
                 continue
             flac_path = item.get("flac")
-            if isinstance(flac_path, str):
+            if isinstance(flac_path, str) and flac_path in flac_paths:
                 done[flac_path] = item
     return done
 
@@ -147,7 +147,7 @@ def main():
     if args.overwrite and progress_path.exists():
         progress_path.unlink()
 
-    done = load_done(progress_path)
+    done = load_done(progress_path, set([str(flac_path) for flac_path in flac_paths]))
     task_paths = [flac_path for flac_path in flac_paths if str(flac_path) not in done]
 
     if task_paths:
