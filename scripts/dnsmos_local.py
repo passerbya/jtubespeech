@@ -55,6 +55,8 @@ class ComputeScore:
 
     def __call__(self, fpath, sampling_rate, is_personalized_MOS):
         aud, input_fs = sf.read(fpath)
+        if aud.ndim > 1:
+            aud = np.mean(aud, axis=1)
         fs = sampling_rate
         if input_fs != fs:
             audio = librosa.resample(aud, orig_sr=input_fs, target_sr=fs)
