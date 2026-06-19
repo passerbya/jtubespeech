@@ -39,6 +39,10 @@ def output_path_for(flac_path):
     return flac_path.with_suffix(".whisper.txt")
 
 
+def language_output_path_for(flac_path):
+    return flac_path.with_suffix(".lang.txt")
+
+
 def transcribe_one(model, flac_path, args):
     kwargs = {
         "beam_size": args.beam_size,
@@ -76,7 +80,8 @@ def whisper_worker(num, task_queue, done_queue, args):
     for flac_path in iter(task_queue.get, "STOP"):
         flac_path = Path(flac_path)
         out_path = output_path_for(flac_path)
-        if out_path.exists() and not args.overwrite:
+        lang_path = language_output_path_for(flac_path)
+        if out_path.exists() and lang_path.exists() and not args.overwrite:
             done_queue.put(("skip", str(flac_path), str(out_path), "", 0.0, None))
             continue
 
@@ -85,6 +90,9 @@ def whisper_worker(num, task_queue, done_queue, args):
             tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
             tmp_path.write_text(content, encoding="utf-8")
             tmp_path.replace(out_path)
+            lang_tmp_path = lang_path.with_suffix(lang_path.suffix + ".tmp")
+            lang_tmp_path.write_text(info.language, encoding="utf-8")
+            lang_tmp_path.replace(lang_path)
             done_queue.put(
                 (
                     "ok",
@@ -136,7 +144,9 @@ def main():
 
     task_files = [
         flac_path for flac_path in flac_files
-        if args.overwrite or not output_path_for(flac_path).exists()
+        if args.overwrite
+        or not output_path_for(flac_path).exists()
+        or not language_output_path_for(flac_path).exists()
     ]
     skipped = len(flac_files) - len(task_files)
     if not task_files:

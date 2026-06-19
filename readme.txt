@@ -129,7 +129,7 @@ nohup python -u scripts/qwen_norm_segs.py --scp /usr/local/corpus/4th_biz/zh/seg
 B站数据txt文字准确率高，只需要执行qwen3-asr进行规范化
 nohup python -u scripts/qwen_norm_segs.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
 
-扫描生成音频与文本文件观对的jsonl
+扫描生成音频与文本文件成对的jsonl
 python -u scripts/filter_quality_jsonl.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp --output /usr/local/corpus/4th_biz/zh/segs/flac_txt.jsonl
 B站数据txt文字准确率高，只需要执行qwen3-asr进行规范化
 python -u scripts/filter_quality_jsonl.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --output /usr/local/ocr/bilili/zh/flac_txt.jsonl --allow-missing-whisper

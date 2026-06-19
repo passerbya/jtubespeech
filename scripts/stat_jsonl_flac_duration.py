@@ -47,7 +47,9 @@ def stat_output_path(jsonl_path: Path) -> Path:
 
 
 def progress_output_path(jsonl_path: Path) -> Path:
-    return jsonl_path.with_suffix(".duration.jsonl")
+    stem = jsonl_path.stem.rsplit(".", 1)[0]
+    jsonl_path = jsonl_path.with_stem(stem).with_suffix(".duration.jsonl")
+    return jsonl_path
 
 
 def load_done(progress_path: Path, flac_paths):
@@ -189,7 +191,7 @@ def main():
     skipped = len(flac_paths) - len(task_paths)
     print(
         f"done. jsonl_items={len(flac_paths)} flac_total={count} skipped={skipped} "
-        f"missing={missing} errors={errors} output={out_path} progress={progress_path}",
+        f"missing={missing} errors={errors} output={out_path} progress={progress_path} total={format_duration(_total)}",
         flush=True,
     )
 

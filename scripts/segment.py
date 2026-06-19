@@ -10,6 +10,15 @@ from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
 
 
+def scandir_generator(path: Path):
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_file():
+                yield Path(entry.path)
+            elif entry.is_dir():
+                yield from scandir_generator(Path(entry.path))
+
+
 def find_dataset_roots(root):
     root = Path(root)
     if (root / "txt").is_dir() and (root / "flac").is_dir():
@@ -28,8 +37,8 @@ def find_dataset_roots(root):
 
 def iter_txt_files(dataset_root):
     txt_root = dataset_root / "txt"
-    for txt_path in txt_root.rglob("*.txt"):
-        if txt_path.is_file():
+    for txt_path in scandir_generator(txt_root):
+        if txt_path.suffix == ".txt":
             yield txt_path
 
 
@@ -62,6 +71,16 @@ def parse_segments(txt_path, min_duration):
                 text = text[1:]
             segments.append((start, end, text))
     return segments
+
+
+def remove_bad_flac(flac_path):
+    try:
+        flac_path.unlink()
+        return " deleted source flac"
+    except FileNotFoundError:
+        return " source flac already missing"
+    except Exception as exc:
+        return f" failed to delete source flac: {exc}"
 
 
 def segment_one(args_tuple):
@@ -122,7 +141,8 @@ def segment_one(args_tuple):
                     f.write(text)
             written += 1
         except Exception as exc:
-            return written, skipped + 1, f"[ERR] failed segment: {flac_path} -> {out_flac}: {exc}"
+            delete_status = remove_bad_flac(flac_path)
+            return written, skipped + 1, f"[ERR] failed segment: {flac_path} -> {out_flac}: {exc};{delete_status}"
 
     return written, skipped, None
 
