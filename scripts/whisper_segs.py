@@ -2,13 +2,26 @@
 # coding: utf-8
 
 import argparse
+import os
 import traceback
+from itertools import islice
 from pathlib import Path
+from typing import Iterable
 
 import torch
 from faster_whisper import WhisperModel
 from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
+
+
+def scandir_generator(path: Path) -> Iterable[Path]:
+    with os.scandir(path) as it:
+        for entry in it:
+            entry_path = Path(entry.path)
+            if entry.is_file():
+                yield entry_path
+            elif entry.is_dir():
+                yield from scandir_generator(entry_path)
 
 
 def iter_flac_files(root):
@@ -17,8 +30,8 @@ def iter_flac_files(root):
     if not root.is_dir():
         print(f"[WARN] skip missing root dir: {root}", flush=True)
         return
-    for flac_path in root.rglob("*.flac"):
-        if not flac_path.is_file():
+    for flac_path in scandir_generator(root):
+        if flac_path.suffix != ".flac":
             continue
         resolved = flac_path.resolve()
         if resolved in seen:
@@ -33,6 +46,12 @@ def load_scp(scp_path):
             line = line.strip()
             if line:
                 yield Path(line)
+
+
+def collect_files(paths, limit: int):
+    if limit > 0:
+        return list(islice(paths, limit))
+    return list(paths)
 
 
 def output_path_for(flac_path):
@@ -132,11 +151,9 @@ def main():
     args = parser.parse_args()
 
     if args.scp:
-        flac_files = sorted(load_scp(args.scp))
+        flac_files = collect_files(load_scp(args.scp), args.limit)
     else:
-        flac_files = sorted(iter_flac_files(args.root))
-    if args.limit > 0:
-        flac_files = flac_files[: args.limit]
+        flac_files = collect_files(iter_flac_files(args.root), args.limit)
 
     if not flac_files:
         print(f"No .flac files found. root={args.root}", flush=True)

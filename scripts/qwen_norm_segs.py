@@ -10,7 +10,9 @@ import string
 import traceback
 import unicodedata
 from difflib import SequenceMatcher
+from itertools import islice
 from pathlib import Path
+from typing import Iterable
 
 from torch.multiprocessing import Process, Queue
 from tqdm import tqdm
@@ -23,6 +25,16 @@ _NEED_TN_RE = re.compile(
     r"|&"
     r"|[\u2070-\u209F\u20A0-\u20CF\u0024\u00A2-\u00A5\u0E3F\u17DB\u2103\u2109\u00B0]"
 )
+
+
+def scandir_generator(path: Path) -> Iterable[Path]:
+    with os.scandir(path) as it:
+        for entry in it:
+            entry_path = Path(entry.path)
+            if entry.is_file():
+                yield entry_path
+            elif entry.is_dir():
+                yield from scandir_generator(entry_path)
 
 
 def read_text(path: Path) -> str:
@@ -50,8 +62,8 @@ def iter_flac_files(root: Path):
     if not root.is_dir():
         print(f"[WARN] skip missing root dir: {root}", flush=True)
         return
-    for flac_path in root.rglob("*.flac"):
-        if flac_path.is_file():
+    for flac_path in scandir_generator(root):
+        if flac_path.suffix == ".flac":
             yield flac_path
 
 
@@ -61,6 +73,12 @@ def load_scp(scp_path: Path):
             line = line.strip()
             if line:
                 yield Path(line)
+
+
+def collect_files(paths, limit: int):
+    if limit > 0:
+        return list(islice(paths, limit))
+    return list(paths)
 
 
 def comparable_text(text: str) -> str:
@@ -162,11 +180,9 @@ def main():
     args = parser.parse_args()
 
     if args.scp:
-        flac_files = sorted(load_scp(args.scp))
+        flac_files = collect_files(load_scp(args.scp), args.limit)
     else:
-        flac_files = sorted(iter_flac_files(args.root))
-    if args.limit > 0:
-        flac_files = flac_files[: args.limit]
+        flac_files = collect_files(iter_flac_files(args.root), args.limit)
 
     if not flac_files:
         print(f"No .flac files found. root={args.root}", flush=True)
