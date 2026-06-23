@@ -168,7 +168,7 @@ def main():
         help="The segs directory to scan.",
     )
     parser.add_argument("--scp", type=Path, default=None, help="Optional .scp file of .flac files.")
-    parser.add_argument("--workers", type=int, default=max(1, min(4, os.cpu_count() or 1)))
+    parser.add_argument("--workers", type=int, default=max(1, min(7, os.cpu_count() or 1)))
     parser.add_argument("--threshold", type=float, default=0.8, help="Minimum txt/whisper similarity.")
     parser.add_argument(
         "--allow-missing-whisper",
