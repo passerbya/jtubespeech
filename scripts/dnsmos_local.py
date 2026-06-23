@@ -132,8 +132,13 @@ def compute_worker(in_queue, out_queue, primary_model_path, p808_model_path, num
         try:
             clip_dict = compute_score(str(flac), desired_fs, is_personalized_eval)
             out_queue.put(clip_dict)
-        except LibsndfileError:
-            print('LibsndfileError', flac)
+        except (LibsndfileError, ValueError) as e:
+            print(type(e).__name__, flac, e)
+            try:
+                Path(flac).unlink(missing_ok=True)
+                print('deleted bad audio file', flac)
+            except OSError as delete_error:
+                print('delete failed', flac, delete_error)
     print(f"compute_worker {num} stopped")
 
 def scandir_generator(path):
@@ -193,7 +198,7 @@ def main():
     done_queue.put("STOP")
     print("compute done.")
 
-NUMBER_OF_PROCESSES = torch.cuda.device_count()
+NUMBER_OF_PROCESSES = 4*torch.cuda.device_count()
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', "--testset_dir", default='.', 
