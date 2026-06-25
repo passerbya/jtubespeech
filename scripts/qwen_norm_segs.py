@@ -41,6 +41,28 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
+def write_text_atomic(path: Path, text: str):
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(text, encoding="utf-8")
+    tmp_path.replace(path)
+
+
+def language_path_for(flac_path: Path) -> Path:
+    return flac_path.with_suffix(".lang.txt")
+
+
+def read_language_code(lang_path: Path) -> str:
+    for line in lang_path.read_text(encoding="utf-8-sig").splitlines():
+        lang = line.strip()
+        if lang:
+            return lang
+    return ""
+
+
+def same_language(left: str, right: str) -> bool:
+    return left.strip().lower() == right.strip().lower()
+
+
 def need_text_normalization(text: str) -> bool:
     return bool(_NEED_TN_RE.search(text))
 
@@ -119,9 +141,41 @@ def should_run_qwen(flac_path: Path, threshold: float, allow_missing_whisper: bo
     return True, "", score
 
 
-def process_one(flac_path: Path, threshold: float, overwrite: bool, allow_missing_whisper: bool):
+def should_enqueue(flac_path: Path, target_lang: str, overwrite: bool) -> bool:
+    if overwrite or not output_path_for(flac_path).exists():
+        return True
+    if not target_lang:
+        return False
+
+    lang_path = language_path_for(flac_path)
+    if not lang_path.exists():
+        return False
+    lang = read_language_code(lang_path)
+    return bool(lang) and not same_language(lang, target_lang)
+
+
+def process_one(flac_path: Path, threshold: float, overwrite: bool, allow_missing_whisper: bool, target_lang: str):
     flac_path = Path(flac_path)
+    txt_path = txt_path_for(flac_path)
     out_path = output_path_for(flac_path)
+
+    if target_lang:
+        lang_path = language_path_for(flac_path)
+        if not lang_path.exists():
+            return "skip", flac_path, out_path, 0.0, f"missing lang: {lang_path}", None
+
+        lang = read_language_code(lang_path)
+        if not lang:
+            return "skip", flac_path, out_path, 0.0, f"empty lang: {lang_path}", None
+
+        if not same_language(lang, target_lang):
+            text = transcribe_file(flac_path, verbose=False).strip()
+            if not text:
+                return "err", flac_path, txt_path, 0.0, f"empty qwen result, lang={lang} target={target_lang}", None
+
+            write_text_atomic(txt_path, text)
+            return "ok", flac_path, txt_path, 0.0, f"lang={lang} target={target_lang}, txt overwritten", None
+
     if out_path.exists() and not overwrite:
         return "skip", flac_path, out_path, 1.0, "exists", None
 
@@ -133,9 +187,7 @@ def process_one(flac_path: Path, threshold: float, overwrite: bool, allow_missin
     if not text:
         return "err", flac_path, out_path, score, "empty qwen result", None
 
-    tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-    tmp_path.write_text(text, encoding="utf-8")
-    tmp_path.replace(out_path)
+    write_text_atomic(out_path, text)
     return "ok", flac_path, out_path, score, "", None
 
 
@@ -146,11 +198,12 @@ def worker(
     threshold: float,
     overwrite: bool,
     allow_missing_whisper: bool,
+    target_lang: str,
 ):
     print(f"qwen_worker {num} started", flush=True)
     for flac_path in iter(task_queue.get, "STOP"):
         try:
-            done_queue.put(process_one(Path(flac_path), threshold, overwrite, allow_missing_whisper))
+            done_queue.put(process_one(Path(flac_path), threshold, overwrite, allow_missing_whisper, target_lang))
         except Exception:
             done_queue.put(("err", Path(flac_path), output_path_for(Path(flac_path)), 0.0, "", traceback.format_exc()))
     done_queue.put(("STOP", None, None, 0.0, "", None))
@@ -177,6 +230,7 @@ def main():
     )
     parser.add_argument("--overwrite", action="store_true", help="Re-run even when .qwen.txt already exists.")
     parser.add_argument("--limit", type=int, default=0, help="Only process the first N files, useful for testing.")
+    parser.add_argument("--lang", default="", help="Expected audio language code, for example zh/en/ja.")
     args = parser.parse_args()
 
     if args.scp:
@@ -190,7 +244,7 @@ def main():
 
     task_files = [
         flac_path for flac_path in flac_files
-        if args.overwrite or not output_path_for(flac_path).exists()
+        if should_enqueue(flac_path, args.lang, args.overwrite)
     ]
     already_done = len(flac_files) - len(task_files)
     if not task_files:
@@ -203,7 +257,7 @@ def main():
     for i in range(args.workers):
         p = Process(
             target=worker,
-            args=(i, task_queue, done_queue, args.threshold, args.overwrite, args.allow_missing_whisper),
+            args=(i, task_queue, done_queue, args.threshold, args.overwrite, args.allow_missing_whisper, args.lang),
         )
         p.start()
         workers.append(p)
@@ -226,7 +280,10 @@ def main():
 
             if status == "ok":
                 processed += 1
-                tqdm.write(f"[OK] {flac_path} -> {out_path} sim={score:.3f}")
+                if reason:
+                    tqdm.write(f"[OK] {flac_path} -> {out_path} {reason}")
+                else:
+                    tqdm.write(f"[OK] {flac_path} -> {out_path} sim={score:.3f}")
             elif status == "skip":
                 skipped += 1
             else:
