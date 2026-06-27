@@ -92,6 +92,7 @@ class SplitJsonlWriter:
         key = safe_lang_for_filename(lang) if lang else ""
         out = self._handle_for(key)
         out.write(json.dumps(item, ensure_ascii=False) + "\n")
+        out.flush()
 
     def ensure_base_output(self):
         self._handle_for("")

@@ -405,6 +405,7 @@ class LanguageJsonlWriter:
     def write(self, lang: str, flac_path: Path, txt_path: Path):
         out = self._handle_for(lang)
         out.write(json.dumps([str(flac_path), str(txt_path)], ensure_ascii=False) + "\n")
+        out.flush()
 
     def _handle_for(self, lang: str):
         if lang not in self.handles:

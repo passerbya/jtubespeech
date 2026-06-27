@@ -403,6 +403,7 @@ def write_outputs(base_jsonl_path: Path, items, results: dict, durations: dict, 
         for label, items_for_label in label_items.items():
             for item in items_for_label:
                 jsonl_files[label][2].write(json.dumps(item["item"], ensure_ascii=False) + "\n")
+                jsonl_files[label][2].flush()
     finally:
         for _label, (_path, _tmp_path, handle) in jsonl_files.items():
             handle.close()
