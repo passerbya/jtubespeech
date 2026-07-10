@@ -169,6 +169,8 @@ def process_one(flac_path: Path, threshold: float, overwrite: bool, allow_missin
             return "skip", flac_path, out_path, 0.0, f"empty lang: {lang_path}", None
 
         if not same_language(lang, target_lang):
+            if lang not in ('ar', 'fa', 'id', 'ja', 'km', 'ko', 'lo', 'ms', 'th', 'tl', 'vi'):
+                return "skip", flac_path, out_path, 0.0, "lang is en", None
             text = transcribe_file(flac_path, verbose=False).strip()
             if not text:
                 return "err", flac_path, txt_path, 0.0, f"empty qwen result, lang={lang} target={target_lang}", None
