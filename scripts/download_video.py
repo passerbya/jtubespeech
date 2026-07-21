@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import argparse
 import sys
@@ -12,6 +13,98 @@ from util import make_video_url, make_basename, vtt2txt, autovtt2txt
 import pandas as pd
 from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
+
+
+def _language_rank(format_lang, requested_lang):
+  """Return a match rank, accepting e.g. en-US when en is requested."""
+  if not format_lang:
+    return -1
+  candidate = str(format_lang).lower().replace('_', '-')
+  requested = requested_lang.lower().replace('_', '-')
+  if candidate == requested:
+    return 2
+  if candidate.startswith(requested + '-'):
+    return 1
+  if requested.startswith(candidate + '-'):
+    return 0
+  return -1
+
+
+def _audio_candidates(info, lang):
+  """Return target-language audio-only formats, best quality first."""
+  candidates = []
+  for fmt in info.get('formats') or []:
+    if fmt.get('vcodec') != 'none' or fmt.get('acodec') in (None, 'none'):
+      continue
+    lang_rank = _language_rank(fmt.get('language'), lang)
+    if lang_rank < 0:
+      continue
+
+    description = ' '.join(str(fmt.get(k) or '') for k in ('format', 'format_note'))
+    is_default = '(default)' in description.lower()
+    codec = str(fmt.get('acodec') or '')
+    codec_rank = 1 if codec.startswith('opus') else 0
+    candidates.append((
+      fmt,
+      (
+        lang_rank,
+        float(fmt.get('abr') or fmt.get('tbr') or 0),
+        int(fmt.get('audio_channels') or 0),
+        int(fmt.get('asr') or 0),
+        codec_rank,
+        not is_default,
+      ),
+    ))
+
+  # Stable sorting keeps yt-dlp's earlier format first when quality fields tie.
+  candidates.sort(key=lambda item: item[1], reverse=True)
+  return [item[0] for item in candidates]
+
+
+def _discover_audio_formats(url, common_args, lang):
+  cmd = ['yt-dlp', '-J', '--skip-download', *common_args, url]
+  cp = subprocess.run(cmd, universal_newlines=True, capture_output=True, text=True)
+  if cp.returncode != 0:
+    return [], cp
+  try:
+    return _audio_candidates(json.loads(cp.stdout), lang), cp
+  except (TypeError, ValueError) as e:
+    cp = subprocess.CompletedProcess(cmd, 1, cp.stdout, f'{cp.stderr}\nInvalid yt-dlp JSON: {e}')
+    return [], cp
+
+
+def _download_best_language_audio(url, base, common_args, lang):
+  candidates, discovery = _discover_audio_formats(url, common_args, lang)
+  if not candidates:
+    if discovery.returncode == 0:
+      discovery = subprocess.CompletedProcess(
+        discovery.args, 1, discovery.stdout,
+        f'No audio-only format found for language {lang!r}.',
+      )
+    return discovery
+
+  last_result = discovery
+  for fmt in candidates:
+    format_id = str(fmt['format_id'])
+    abr = fmt.get('abr') or fmt.get('tbr') or 0
+    print(f'Trying audio format {format_id} ({fmt.get("language")}, {abr}k) for {url}')
+    cmd = [
+      'yt-dlp', '-v', '-f', format_id, *common_args,
+      '--match-filter', 'duration < 7200',
+      '--sub-langs', f'{lang}.*',
+      '--sub-format', 'vtt/srt/best',
+      '--extract-audio', '--audio-format', 'wav', '--write-sub',
+      url, '-o', f'{base}.%(ext)s',
+    ]
+    last_result = subprocess.run(cmd, universal_newlines=True, capture_output=True, text=True)
+    if last_result.returncode == 0:
+      return last_result
+
+    print(f'Audio format {format_id} failed; trying the next lower-quality format.')
+    for partial in base.parent.glob(f'{base.name}*.part'):
+      partial.unlink()
+
+  return last_result
 
 def parse_args():
   parser = argparse.ArgumentParser(
@@ -35,10 +128,20 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
     r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
     cookie_file = f'cookies_{r}.txt'
     shutil.copy('cookies.txt', cookie_file)
-    #cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v --cookies {cookie_file} --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
     po_token = 'MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg=='
-    cmd = f"export http_proxy=http://{proxy} && export https_proxy=http://{proxy} && yt-dlp -v -f \"b[ext=mp4]/ba\" --cookies {cookie_file} --js-runtimes node --extractor-args \"youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}\" --match-filter \"duration < 7200\" --sub-langs \"{lang}.*\" --sub-format \"vtt/srt/best\" --extract-audio --audio-format wav --write-sub {url} -o {base}.\%\(ext\)s"
-    cp = subprocess.run(cmd, shell=True, universal_newlines=True, capture_output=True, text=True)
+    data_sync_id = '116785937834682576816||'
+    extractor_args = (
+      'youtube:player-client=default,mweb;'
+      f'po_token=mweb.gvs+{po_token};data_sync_id={data_sync_id}'
+    )
+    common_args = [
+      '--proxy', f'http://{proxy}',
+      '--cookies', cookie_file,
+      '--js-runtimes', 'node',
+      '--extractor-args', extractor_args,
+    ]
+    cp = _download_best_language_audio(url, base, common_args, lang)
+    cmd = subprocess.list2cmdline(cp.args)
     os.unlink(cookie_file)
     if cp.returncode != 0:
       for f in glob.glob(f"{base}.{lang}*.vtt"):
@@ -235,4 +338,3 @@ if __name__ == "__main__":
 
   dirname = download_video(args.lang, args.sublist, args.proxies, args.outdir, keep_org=args.keeporg)
   print(f"save {args.lang.upper()} videos to {dirname}.")
-
