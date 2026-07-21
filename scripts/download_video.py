@@ -140,23 +140,44 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
       '--js-runtimes', 'node',
       '--extractor-args', extractor_args,
     ]
+    #print(f'[DOWNLOAD] start {videoid}', flush=True)
     cp = _download_best_language_audio(url, base, common_args, lang)
+    '''
+    print(
+      f'[DOWNLOAD] end {videoid}, returncode={cp.returncode}',
+      flush=True,
+    )
+    print(
+      cp.stdout,
+      flush=True,
+    )
+    print(
+      cp.stderr,
+      flush=True,
+    )
+    '''
     cmd = subprocess.list2cmdline(cp.args)
     os.unlink(cookie_file)
     if cp.returncode != 0:
       for f in glob.glob(f"{base}.{lang}*.vtt"):
         os.remove(f)
-      if ('ERROR: [youtube]' in cp.stdout and ('Video unavailable' in cp.stdout or 'This video is unavailable' or 'This video is not available' in cp.stdout or 'Private video' in cp.stdout or 'This video has been removed' in cp.stdout or 'Join this channel to get access' in cp.stdout or 'This video requires payment to watch' in cp.stdout)) \
-              or ('ERROR: [youtube]' in cp.stderr and ('Video unavailable' in cp.stderr or 'This video is unavailable' or 'This video is not available' in cp.stderr or 'Private video' in cp.stderr or 'This video has been removed' in cp.stderr or 'Join this channel to get access' in cp.stderr or 'This video requires payment to watch' in cp.stderr)):
+      if f'No audio-only format found for language {lang!r}.' in cp.stderr:
+        print(
+          f'No target-language audio: videoid={videoid}, lang={lang}',
+          flush=True,
+        )
+        empty_queue.put(videoid)
+      elif ('ERROR: [youtube]' in cp.stdout and ('video is no longer available' in cp.stdout or 'Video unavailable' in cp.stdout or 'This video is unavailable' or 'This video is not available' in cp.stdout or 'Private video' in cp.stdout or 'This video has been removed' in cp.stdout or 'Join this channel to get access' in cp.stdout or 'This video requires payment to watch' in cp.stdout)) \
+              or ('ERROR: [youtube]' in cp.stderr and ('video is no longer available' in cp.stderr or 'Video unavailable' in cp.stderr or 'This video is unavailable' or 'This video is not available' in cp.stderr or 'Private video' in cp.stderr or 'This video has been removed' in cp.stderr or 'Join this channel to get access' in cp.stderr or 'This video requires payment to watch' in cp.stderr)):
         error_queue.put(videoid)
       elif ('ERROR: [youtube]' in cp.stdout and 'Sign in to confirm' in cp.stdout and 'not a bot' in cp.stdout) \
            or ('ERROR: [youtube]' in cp.stderr and 'Sign in to confirm' in cp.stderr and 'not a bot' in cp.stderr) \
            or ('ERROR: [youtube]' in cp.stdout and 'The uploader has not made this video available in your country' in cp.stdout) \
            or ('ERROR: [youtube]' in cp.stderr and 'The uploader has not made this video available in your country' in cp.stderr):
-        print(f"Failed to download the video: cmd = {cmd}")
-        print(f'!!! Change {proxy} !!!', cp.stderr)
+        print(f"Failed to download the video: cmd = {cmd}", flush=True)
+        print(f'!!! Change {proxy} !!!', cp.stderr, flush=True)
       else:
-        print(cmd, cp.stderr)
+        print(cmd, cp.stderr, flush=True)
       continue
     else:
       if 'does not pass filter' in cp.stdout or 'does not pass filter' in cp.stderr:
@@ -306,6 +327,8 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
     #if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
     #  continue
+    if videoid in empty_vids or videoid in exceed_limit_vids:
+     continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
       if k == 'wav_org':
