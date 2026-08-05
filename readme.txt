@@ -143,3 +143,23 @@ python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/VCTK/wav48_
 nohup python -u scripts/stat_jsonl_flac_duration.py /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl > 1.log 2>&1 &
 
 nohup python -u scripts/classify_flac_txt_accent.py --jsonl /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl > accent.log 2>&1 &
+
+
+
+OMP_NUM_THREADS=1 \
+MKL_NUM_THREADS=1 \
+OPENBLAS_NUM_THREADS=1 \
+NUMEXPR_NUM_THREADS=1 \
+PYTHONWARNINGS="ignore:pkg_resources is deprecated as an API" \
+nohup python -u scripts/nisqa_filter_scp.py \
+  --input-scp /usr/local/data/VocalExtractor/data2/audio/Thai_Speech_Emotion_Dataset/dns_mos.scp \
+  --output-scp /usr/local/data/VocalExtractor/data2/audio/Thai_Speech_Emotion_Dataset/nisqa_mos.scp \
+  --jsonl /usr/local/data/VocalExtractor/data2/audio/Thai_Speech_Emotion_Dataset/nisqa_mos.jsonl \
+  --nisqa-dir /usr/local/corpus/NISQA \
+  --devices 4,5,6,7 \
+  --num-workers 4 \
+  --loader-workers 2 \
+  --batch-size 10 \
+  --chunk-size 250 \
+  --max-segments 6000 \
+  > cu.log 2>&1 &

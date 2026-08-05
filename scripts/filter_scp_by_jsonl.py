@@ -12,10 +12,18 @@ def filter_scp_by_jsonl(jsonl_path, output_path, logic):
     with open(jsonl_path, 'r', encoding='utf-8') as jsonl_file:
         for line in jsonl_file:
             record = json.loads(line.strip())
+            '''
+            sig_pass = record.get('SIG', 0) >= 3.2
+            bak_pass = record.get('BAK', 0) >= 3.3
+            ovrl_pass = record.get('OVRL', 0) >= 3.0
+            if (logic == 'or' and (sig_pass or bak_pass or ovrl_pass)) or (
+                logic == 'and' and (sig_pass and bak_pass and ovrl_pass)
+            ):
+            '''
             ovrl_pass = record.get('OVRL', 0) > 3.2
             p808_mos_pass = record.get('P808_MOS', 0) > 3.6
             if (logic == 'or' and (ovrl_pass or p808_mos_pass)) or (
-                logic == 'and' and (ovrl_pass and p808_mos_pass)
+                    logic == 'and' and (ovrl_pass and p808_mos_pass)
             ):
                 filtered_lines.append(record['filename'].replace('/data1/', '/data2/'))
 
