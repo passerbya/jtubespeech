@@ -163,3 +163,14 @@ nohup python -u scripts/nisqa_filter_scp.py \
   --chunk-size 250 \
   --max-segments 6000 \
   > cu.log 2>&1 &
+
+
+  FIRST_TXT=/usr/local/ocr/jtubespeech/video/ms/segs/-O/-O0SsAuXOLk_0102.txt
+  START_TIME=$(stat -c '%y' "$FIRST_TXT" | cut -c1-19)
+  echo "$START_TIME"
+
+  nohup python -u scripts/qwen_norm_segs.py \
+    --scp /usr/local/ocr/jtubespeech/video/ms/segs/dns_mos.scp \
+    --lang ms \
+    --overwrite-before "$START_TIME" \
+    > resume.log 2>&1 &
