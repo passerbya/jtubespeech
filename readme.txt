@@ -12,7 +12,7 @@ git clone git@hf.co:openai/whisper-large-v2
 
 
 安装python环境
-conda create -n jtubespeech python==3.10
+conda create -n jtubespeech python==3.11
 conda activate jtubespeech
 pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 torch-complex
 
@@ -25,7 +25,7 @@ pip install ml_dtypes==0.2.0 soxr==0.5.0.post1 onnxruntime-gpu onnxruntime-tools
 pip install /usr/local/data/tts-norm/
 pip install /usr/local/corpus/penghu/work/VocalExtractor/
 
-conda create -n ytb_cookie python=3.10
+conda create -n ytb_cookie python=3.11
 conda activate ytb_cookie
 pip3 install playwright
 python3 -m playwright install chromium
@@ -174,3 +174,5 @@ nohup python -u scripts/nisqa_filter_scp.py \
     --lang ms \
     --overwrite-before "$START_TIME" \
     > resume.log 2>&1 &
+
+ nohup python -u scripts/separate.py --path /usr/local/ocr/bilili/zh/ --buckets 3 --bucket 2 > sep_2.log 2>&1 &

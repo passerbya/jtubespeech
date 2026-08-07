@@ -6,6 +6,7 @@
 #
 
 import argparse
+import hashlib
 
 import os
 import librosa
@@ -23,6 +24,14 @@ from torch.multiprocessing import Process, Queue
 
 SAMPLING_RATE = 16000
 INPUT_LENGTH = 9.01
+
+
+def bucket_for_filename(path: Path, buckets: int) -> int:
+    if buckets == 1:
+        return 0
+    digest = hashlib.sha256(path.name.encode("utf-8")).digest()
+    return int.from_bytes(digest, byteorder="big") % buckets
+
 
 class ComputeScore:
     def __init__(self, primary_model_path, p808_model_path, num=0) -> None:
@@ -166,6 +175,7 @@ def main():
         mos_list = set()
         jsonl_file.touch()
     print(len(mos_list))
+    print(f"bucket={args.bucket}/{args.buckets}")
 
     task_queue = Queue(maxsize=NUMBER_OF_PROCESSES)
     done_queue = Queue()
@@ -182,13 +192,19 @@ def main():
     for i in range(NUMBER_OF_PROCESSES):
         Process(target=compute_worker, args=(task_queue, done_queue, primary_model_path, p808_model_path, i)).start()
 
+    skipped_bucket = 0
     for clip in scandir_generator(args.testset_dir):
         clip = clip.resolve()
         if clip.suffix != '.flac':
             continue
+        if bucket_for_filename(clip, args.buckets) != args.bucket:
+            skipped_bucket += 1
+            continue
         if str(clip) in mos_list:
             continue
         task_queue.put(clip)
+
+    print(f"bucket scan done, skipped_bucket={skipped_bucket}")
 
     # Tell child processes to stop
     for i in range(NUMBER_OF_PROCESSES):
@@ -206,7 +222,13 @@ if __name__=="__main__":
     parser.add_argument('-o', "--jsonl_path", default=None, help='Dir to the jsonl that saves the results')
     parser.add_argument('-p', "--personalized_MOS", action='store_true', 
                         help='Flag to indicate if personalized MOS score is needed or regular')
+    parser.add_argument("--buckets", type=int, default=1, help="Total number of buckets. 1 disables bucketing.")
+    parser.add_argument("--bucket", type=int, default=0, help="Zero-based bucket index for this server.")
     
     args = parser.parse_args()
+    if args.buckets < 1:
+        parser.error("--buckets must be at least 1")
+    if not 0 <= args.bucket < args.buckets:
+        parser.error("--bucket must be in the range [0, --buckets)")
 
     main()

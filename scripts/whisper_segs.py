@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import argparse
+import hashlib
 import os
 import traceback
 from itertools import islice
@@ -12,6 +13,19 @@ import torch
 from faster_whisper import WhisperModel
 from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
+
+
+def bucket_for_filename(path: Path, buckets: int) -> int:
+    if buckets == 1:
+        return 0
+    digest = hashlib.sha256(path.name.encode("utf-8")).digest()
+    return int.from_bytes(digest, byteorder="big") % buckets
+
+
+def iter_bucket_files(paths, buckets: int, bucket: int):
+    for path in paths:
+        if bucket_for_filename(path, buckets) == bucket:
+            yield path
 
 
 def scandir_generator(path: Path) -> Iterable[Path]:
@@ -148,12 +162,25 @@ def main():
     parser.add_argument("--overwrite", action="store_true", help="Re-transcribe even when .whisper.txt already exists.")
     parser.add_argument("--limit", type=int, default=0, help="Only process the first N files, useful for testing.")
     parser.add_argument("--workers", type=int, default=0, help="Number of worker processes. Default: one per CUDA device, or 1 on CPU.")
+    parser.add_argument("--buckets", type=int, default=1, help="Total number of buckets. 1 disables bucketing.")
+    parser.add_argument("--bucket", type=int, default=0, help="Zero-based bucket index for this server.")
     args = parser.parse_args()
 
+    if args.buckets < 1:
+        parser.error("--buckets must be at least 1")
+    if not 0 <= args.bucket < args.buckets:
+        parser.error("--bucket must be in the range [0, --buckets)")
+
     if args.scp:
-        flac_files = collect_files(load_scp(args.scp), args.limit)
+        source_files = load_scp(args.scp)
     else:
-        flac_files = collect_files(iter_flac_files(args.root), args.limit)
+        source_files = iter_flac_files(args.root)
+    flac_files = collect_files(
+        iter_bucket_files(source_files, args.buckets, args.bucket),
+        args.limit,
+    )
+
+    print(f"bucket={args.bucket}/{args.buckets} selected_files={len(flac_files)}", flush=True)
 
     if not flac_files:
         print(f"No .flac files found. root={args.root}", flush=True)
