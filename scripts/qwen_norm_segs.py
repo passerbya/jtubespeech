@@ -240,6 +240,9 @@ def worker(
 ):
     print(f"qwen_worker {num} started", flush=True)
     for flac_path in iter(task_queue.get, "STOP"):
+        if not should_enqueue(Path(flac_path), target_lang, overwrite, overwrite_before):
+            done_queue.put(("skip", Path(flac_path), output_path_for(Path(flac_path)), 0.0, "txt is not older than --overwrite-before", None))
+            continue
         try:
             done_queue.put(
                 process_one(
@@ -310,6 +313,7 @@ def main():
         return
     '''
     task_files = flac_files
+    already_done = 0
     print(f"done. files={len(flac_files)}", flush=True)
 
     task_queue = Queue()
@@ -333,8 +337,7 @@ def main():
         workers.append(p)
 
     for flac_path in task_files:
-        if should_enqueue(flac_path, args.lang, args.overwrite, args.overwrite_before):
-            task_queue.put(str(flac_path))
+        task_queue.put(str(flac_path))
     for _ in workers:
         task_queue.put("STOP")
 

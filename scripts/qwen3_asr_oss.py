@@ -164,7 +164,7 @@ def transcribe_file(audio_path: Path, verbose: bool = True) -> str:
 
     result = wait_for_result(task_id, verbose=verbose)
     if result is None:
-        return None
+        return ""
     transcription = download_transcription(result)
     return extract_plain_text(transcription)
 
