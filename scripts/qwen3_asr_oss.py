@@ -112,6 +112,9 @@ def wait_for_result(task_id: str, verbose: bool = True) -> dict[str, Any]:
         if status == "SUCCEEDED":
             return data
         if status in {"FAILED", "UNKNOWN"}:
+            code = str(data.get("output", {}).get("code", "")).upper()
+            if code == "SUCCESS_WITH_NO_VALID_FRAGMENT":
+                return None
             raise RuntimeError(f"task failed: {json.dumps(data, ensure_ascii=False, indent=2)}")
 
 
@@ -160,6 +163,8 @@ def transcribe_file(audio_path: Path, verbose: bool = True) -> str:
         print(f"task_id: {task_id}", file=sys.stderr)
 
     result = wait_for_result(task_id, verbose=verbose)
+    if result is None:
+        return None
     transcription = download_transcription(result)
     return extract_plain_text(transcription)
 

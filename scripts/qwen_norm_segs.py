@@ -60,7 +60,7 @@ def parse_datetime(value: str) -> float:
         ) from exc
 
 
-def txt_is_older_than(txt_path: Path, timestamp: float) -> bool:
+def txt_was_modified_before(txt_path: Path, timestamp: float) -> bool:
     return txt_path.exists() and txt_path.stat().st_mtime < timestamp
 
 
@@ -164,7 +164,7 @@ def should_enqueue(flac_path: Path, target_lang: str, overwrite: bool, overwrite
         if lang_path.exists():
             lang = read_language_code(lang_path)
             if lang and not same_language(lang, target_lang):
-                return txt_is_older_than(txt_path_for(flac_path), overwrite_before)
+                return txt_was_modified_before(txt_path_for(flac_path), overwrite_before)
 
     if overwrite or not output_path_for(flac_path).exists():
         return True
@@ -202,8 +202,10 @@ def process_one(
         if not same_language(lang, target_lang):
             if lang not in ('ar', 'fa', 'id', 'ja', 'km', 'ko', 'lo', 'ms', 'th', 'tl', 'vi'):
                 return "skip", flac_path, out_path, 0.0, "lang is en", None
-            if overwrite_before is not None and not txt_is_older_than(txt_path, overwrite_before):
+            if overwrite_before is not None and not txt_was_modified_before(txt_path, overwrite_before):
                 return "skip", flac_path, txt_path, 0.0, "txt is not older than --overwrite-before", None
+            if txt_path.exists():
+                print(txt_path, txt_path.stat().st_mtime, overwrite_before)
             text = transcribe_file(flac_path, verbose=False).strip()
             if not text:
                 return "err", flac_path, txt_path, 0.0, f"empty qwen result, lang={lang} target={target_lang}", None
@@ -297,6 +299,7 @@ def main():
         print(f"No .flac files found. root={args.root}", flush=True)
         return
 
+    '''
     task_files = [
         flac_path for flac_path in flac_files
         if should_enqueue(flac_path, args.lang, args.overwrite, args.overwrite_before)
@@ -305,6 +308,9 @@ def main():
     if not task_files:
         print(f"done. files={len(flac_files)} processed=0 skipped={already_done} errors=0", flush=True)
         return
+    '''
+    task_files = flac_files
+    print(f"done. files={len(flac_files)}", flush=True)
 
     task_queue = Queue()
     done_queue = Queue()
@@ -327,7 +333,8 @@ def main():
         workers.append(p)
 
     for flac_path in task_files:
-        task_queue.put(str(flac_path))
+        if should_enqueue(flac_path, args.lang, args.overwrite, args.overwrite_before):
+            task_queue.put(str(flac_path))
     for _ in workers:
         task_queue.put("STOP")
 
