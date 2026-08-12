@@ -186,6 +186,7 @@ def main():
         print(f"No .flac files found. root={args.root}", flush=True)
         return
 
+    '''
     task_files = [
         flac_path for flac_path in flac_files
         if args.overwrite
@@ -196,6 +197,10 @@ def main():
     if not task_files:
         print(f"done. files={len(flac_files)} processed=0 skipped={skipped} errors=0", flush=True)
         return
+    '''
+    task_files = flac_files
+    skipped = 0
+    print(f"done. files={len(flac_files)}", flush=True)
 
     if args.workers > 0:
         num_workers = args.workers
