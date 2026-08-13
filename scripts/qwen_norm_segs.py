@@ -139,7 +139,7 @@ def should_run_qwen(flac_path: Path, threshold: float, allow_missing_whisper: bo
     txt_path = txt_path_for(flac_path)
     whisper_path = whisper_path_for(flac_path)
     if not txt_path.exists():
-        return False, f"missing txt: {txt_path}", 0.0
+        return True, f"missing txt: {txt_path}", 0.0
 
     text = read_text(txt_path)
     if not text:
@@ -224,8 +224,17 @@ def process_one(
     if not text:
         return "err", flac_path, out_path, score, "empty qwen result", None
 
-    write_text_atomic(out_path, text)
-    return "ok", flac_path, out_path, score, "", None
+    if not txt_path.exists():
+        if need_text_normalization(text):
+            #Qwen 文本需要 TN：同时写入内容完全相同的 .txt 和 .qwen.txt。下游 [filter_quality_jsonl.py (line 178)] 会比较这两个文件，分数恒为 1.0
+            write_text_atomic(out_path, text)
+
+        #Qwen 文本不需要 TN：只写 .txt，下游会比较 .txt 与 Whisper。
+        write_text_atomic(txt_path, text)
+        return "ok", flac_path, txt_path, score, "", None
+    else:
+        write_text_atomic(out_path, text)
+        return "ok", flac_path, out_path, score, "", None
 
 
 def worker(
