@@ -63,14 +63,13 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, empty_queue, 
       r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
       cookie_file = f'cookies_{r}.txt'
       shutil.copy('cookies.txt', cookie_file)
-      po_token = 'MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg=='
       cmd = [
         'yt-dlp', '-J', '--skip-download',
         '--proxy', f'http://{proxy}',
         '--cookies', cookie_file,
         '--js-runtimes', 'node',
         '--extractor-args',
-        f'youtube:player-client=default,mweb;po_token=mweb.gvs+{po_token}',
+        'youtube:player_client=default,web_embedded',
         url,
       ]
       cp = subprocess.run(cmd, universal_newlines=True, capture_output=True, text=True)
@@ -117,7 +116,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print('save error done')
 
-def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=1, fn_checkpoint=None):
+def retrieve_subtitle_exists(lang, fn_videoid, proxies, outdir="sub", wait_sec=0.0, fn_checkpoint=None):
   fn_sub = Path(outdir) / lang / f"{Path(fn_videoid).stem}.csv"
   fn_sub.parent.mkdir(parents=True, exist_ok=True)
   columns = ["videoid", "auto", "sub"]

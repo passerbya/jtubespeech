@@ -128,12 +128,15 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
     r = str(round(time.time()*1000)) + '_' + str(random.randint(10000000, 999999999))
     cookie_file = f'cookies_{r}.txt'
     shutil.copy('cookies.txt', cookie_file)
+    '''
     po_token = 'MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg=='
     data_sync_id = '116785937834682576816||'
     extractor_args = (
       'youtube:player-client=default,mweb;'
       f'po_token=mweb.gvs+{po_token};data_sync_id={data_sync_id}'
     )
+    '''
+    extractor_args = 'youtube:player_client=default,web_embedded'
     common_args = [
       '--proxy', f'http://{proxy}',
       '--cookies', cookie_file,
@@ -159,9 +162,11 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
     cmd = subprocess.list2cmdline(cp.args)
     os.unlink(cookie_file)
     if cp.returncode != 0:
+      #print('cp.stdout', cp.stdout)
+      #print('cp.stderr', cp.stderr)
       for f in glob.glob(f"{base}.{lang}*.vtt"):
         os.remove(f)
-      if f'No audio-only format found for language {lang!r}.' in cp.stderr:
+      if 'No audio-only format found' in cp.stdout or 'No audio-only format found' in cp.stderr:
         print(
           f'No target-language audio: videoid={videoid}, lang={lang}',
           flush=True,
@@ -188,6 +193,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
         continue
     try:
       f = glob.glob(f"{base}.{lang}*.vtt")[0]
+      print(f)
       shutil.move(f, fn["vtt"])
     except Exception as e:
       print(f"Failed to rename subtitle file.", cmd)
@@ -234,7 +240,7 @@ def save_error_worker(error_fn, in_queue):
       f.flush()
   print(f'save {error_fn} done')
 
-def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=False):
+def download_video(lang, fn_sub, proxies, outdir="video", wait_sec= 0.0, keep_org=False):
   """
   Tips:
     If you want to download automatic subtitles instead of manual subtitles, please change as follows.
@@ -325,10 +331,8 @@ def download_video(lang, fn_sub, proxies, outdir="video", wait_sec=2, keep_org=F
     ),
   ).start()
   for videoid in tqdm(sub[sub["sub"]==True]["videoid"]): # manual subtitle only
-    #if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
-    #  continue
-    if videoid in empty_vids or videoid in exceed_limit_vids:
-     continue
+    if videoid in empty_vids or videoid in exceed_limit_vids or videoid in error_vids:
+      continue
     fn = {}
     for k in ["wav", "wav_org", "vtt", "txt"]:
       if k == 'wav_org':

@@ -32,6 +32,24 @@ python3 -m playwright install chromium
 
 nohup python -u scripts/dnsmos_local.py -t /usr/local/ocr/bilili/zh/flac -o /usr/local/ocr/bilili/zh/dnsmos.csv -p > dnsmos.log 2>&1 &
 
+
+git clone --single-branch --branch 1.3.1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git
+cd bgutil-ytdlp-pot-provider/server
+
+npm ci
+npx tsc
+
+python3 -m pip install -U yt-dlp bgutil-ytdlp-pot-provider
+
+install -m 755 bgutil-provider-watchdog.sh \
+  /usr/local/sbin/bgutil-provider-watchdog.sh
+
+/usr/local/sbin/bgutil-provider-watchdog.sh
+
+curl http://127.0.0.1:4416/ping
+
+* * * * * /bin/bash /usr/local/sbin/bgutil-provider-watchdog.sh >/dev/null 2>&1
+
 1）youtube-dl异常
 https://github.com/ytdl-org/youtube-dl/issues/31530#Description
 下载新版

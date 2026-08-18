@@ -83,6 +83,18 @@ def remove_bad_flac(flac_path):
         return f" failed to delete source flac: {exc}"
 
 
+def is_confirmed_bad_flac(exc):
+    """Return whether libsndfile explicitly identified invalid audio data."""
+    libsndfile_error = getattr(sf, "LibsndfileError", None)
+    if libsndfile_error is None or not isinstance(exc, libsndfile_error):
+        return False
+
+    # Public libsndfile error codes:
+    # 1 = unrecognised format, 3 = malformed file.
+    # System/write errors (including a full device) must never remove the source.
+    return getattr(exc, "code", None) in {1, 3}
+
+
 def segment_one(args_tuple):
     txt_path, dataset_root, min_duration = args_tuple
     txt_path = Path(txt_path)
@@ -103,7 +115,8 @@ def segment_one(args_tuple):
     try:
         info = sf.info(str(flac_path))
     except Exception as exc:
-        return 0, 1, f"[ERR] cannot read flac info: {flac_path}: {exc}"
+        delete_status = remove_bad_flac(flac_path) if is_confirmed_bad_flac(exc) else " source flac kept"
+        return 0, 1, f"[ERR] cannot read flac info: {flac_path}: {exc};{delete_status}"
 
     sr = info.samplerate
     total_frames = info.frames
@@ -126,8 +139,8 @@ def segment_one(args_tuple):
             skipped += 1
             continue
 
-        try:
-            if not out_flac.exists():
+        if not out_flac.exists():
+            try:
                 audio, _ = sf.read(
                     str(flac_path),
                     start=start_frame,
@@ -135,14 +148,23 @@ def segment_one(args_tuple):
                     dtype="float32",
                     always_2d=False,
                 )
+            except Exception as exc:
+                delete_status = remove_bad_flac(flac_path) if is_confirmed_bad_flac(exc) else " source flac kept"
+                return written, skipped + 1, f"[ERR] failed to read source flac: {flac_path}: {exc};{delete_status}"
+
+            try:
                 sf.write(str(out_flac), audio, sr, format="FLAC")
-            if not out_txt.exists():
+            except Exception as exc:
+                return written, skipped + 1, f"[ERR] failed to write segment audio: {flac_path} -> {out_flac}: {exc}; source flac kept"
+
+        if not out_txt.exists():
+            try:
                 with open(out_txt, "w", encoding="utf-8") as f:
                     f.write(text)
-            written += 1
-        except Exception as exc:
-            delete_status = remove_bad_flac(flac_path)
-            return written, skipped + 1, f"[ERR] failed segment: {flac_path} -> {out_flac}: {exc};{delete_status}"
+            except Exception as exc:
+                return written, skipped + 1, f"[ERR] failed to write segment text: {out_txt}: {exc}; source flac kept"
+
+        written += 1
 
     return written, skipped, None
 
