@@ -44,7 +44,7 @@ def iter_txt_files(dataset_root):
 
 def parse_segments(txt_path, min_duration):
     segments = []
-    with open(txt_path, "r", encoding="utf-8") as f:
+    with open(str(txt_path), "r", encoding="utf-8") as f:
         for line_no, line in enumerate(f, start=1):
             line = line.rstrip("\r\n")
             if not line:
@@ -120,9 +120,12 @@ def segment_one(args_tuple):
 
     sr = info.samplerate
     total_frames = info.frames
-    out_dir = segments_root / rel_txt.parent
-    out_dir.mkdir(parents=True, exist_ok=True)
     out_stem = txt_path.stem
+    if str(txt_path).find('bilili/zh/') != -1:
+        out_dir = segments_root / out_stem[:4]
+    else:
+        out_dir = segments_root / rel_txt.parent
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     written = 0
     skipped = 0
@@ -159,10 +162,10 @@ def segment_one(args_tuple):
 
         if not out_txt.exists():
             try:
-                with open(out_txt, "w", encoding="utf-8") as f:
+                with open(str(out_txt), "w", encoding="utf-8") as f:
                     f.write(text)
             except Exception as exc:
-                return written, skipped + 1, f"[ERR] failed to write segment text: {out_txt}: {exc}; source flac kept"
+                return written, skipped + 1, f"[ERR] failed to write segment text: {out_txt}, {text}: {exc}; source flac kept"
 
         written += 1
 
