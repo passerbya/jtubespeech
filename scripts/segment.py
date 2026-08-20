@@ -90,9 +90,11 @@ def is_confirmed_bad_flac(exc):
         return False
 
     # Public libsndfile error codes:
-    # 1 = unrecognised format, 3 = malformed file.
+    # 1 = unrecognised format, 3 = malformed file, 38 = Internal psf_fseek() failed.
     # System/write errors (including a full device) must never remove the source.
-    return getattr(exc, "code", None) in {1, 3}
+    print(f"错误代码: {exc.code}")
+    print(f"详细错误信息: {exc.error_string}")
+    return getattr(exc, "code", None) in {1, 3, 38}
 
 
 def segment_one(args_tuple):
