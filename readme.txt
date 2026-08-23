@@ -194,3 +194,10 @@ nohup python -u scripts/nisqa_filter_scp.py \
     > resume.log 2>&1 &
 
  nohup python -u scripts/separate.py --path /usr/local/ocr/bilili/zh/ --buckets 3 --bucket 2 > sep_2.log 2>&1 &
+
+ nohup python -u scripts/dnsmos_local.py \
+   -t /usr/local/ocr/bilili/zh/segs \
+   -o /usr/local/ocr/bilili/zh/segs/dns_mos.jsonl \
+   --workers_per_gpu 1 \
+   --batch_size 4 \
+   > mos_zh.log 2>&1 &
