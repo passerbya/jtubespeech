@@ -234,13 +234,16 @@ class ComputeScore:
 def listen_worker(in_queue, jsonl_file):
     print("listen_worker started.")
 
+    i = 0
     for clip_dict in iter(in_queue.get, "STOP"):
         print('listen_worker', clip_dict['filename'], clip_dict['OVRL'], clip_dict['P808_MOS'])
         with open(jsonl_file, 'a', encoding='utf-8') as f:
             clip_dict = {key: float(value) if isinstance(value, np.float32) else value for key, value in clip_dict.items()}
             line = json.dumps(clip_dict)
             f.write(f'{line}\n')
-            f.flush()
+            i += 1
+            if i % 500 == 0:
+                f.flush()
 
     print("listen_worker ended.")
 
