@@ -320,8 +320,23 @@ def main():
     jsonl_file = Path(args.jsonl_path)
     if jsonl_file.exists():
         with open(jsonl_file) as f:
-            mos_list = f.readlines()
-        mos_list = set([json.loads(item.strip())['filename'] for item in mos_list])
+            _mos_list = f.readlines()
+        mos_list = set()
+        correct_list = []
+        error = 0
+        for item in _mos_list:
+            try:
+                mos_list.add(json.loads(item.strip())['filename'])
+                correct_list.append(item)
+            except:
+                print(item)
+                error += 1
+                pass
+        if error > 0:
+            print(f"Error: {error}")
+            with open(jsonl_file, 'w', encoding='utf-8') as f:
+                f.writelines(correct_list)
+                f.flush()
     else:
         mos_list = set()
         jsonl_file.touch()
