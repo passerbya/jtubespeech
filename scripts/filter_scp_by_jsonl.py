@@ -20,11 +20,9 @@ def filter_scp_by_jsonl(jsonl_path, output_path, logic):
                 logic == 'and' and (sig_pass and bak_pass and ovrl_pass)
             ):
             '''
-            ovrl_pass = record.get('OVRL', 0) > 3.2
-            p808_mos_pass = record.get('P808_MOS', 0) > 3.6
-            if (logic == 'or' and (ovrl_pass or p808_mos_pass)) or (
-                    logic == 'and' and (ovrl_pass and p808_mos_pass)
-            ):
+            ovrl_pass = record.get('OVRL', 0) > 3.0
+            #p808_mos_pass = record.get('P808_MOS', 0) > 3.6
+            if ovrl_pass:
                 filtered_lines.append(record['filename'].replace('/data1/', '/data2/'))
 
     # Write the filtered lines to the output SCP file

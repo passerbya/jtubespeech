@@ -21,7 +21,7 @@ apt-get install ffmpeg
 pip install pathlib soundfile num2words neologdn romkan ffmpeg-python s3prl jaconv underthesea ctc-segmentation transformers
 pip install pyarrow==16.1.0 pandas==2.1.2 fastparquet
 conda install -c conda-forge cmake scikit-build-core
-pip install ml_dtypes==0.2.0 soxr==0.5.0.post1 onnxruntime-gpu onnxruntime-tools librosa scipy numpy
+pip install ml_dtypes==0.2.0 soxr==0.5.0.post1 onnxruntime-gpu onnxruntime-tools librosa scipy numpy==1.26.4
 pip install /usr/local/data/tts-norm/
 pip install /usr/local/corpus/penghu/work/VocalExtractor/
 
