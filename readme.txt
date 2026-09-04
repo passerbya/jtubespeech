@@ -148,7 +148,7 @@ python -u scripts/filter_scp_by_jsonl.py --jsonl /usr/local/corpus/4th_biz/zh/se
 whisper识别语音文本,生成.whisper.txt文件
 nohup python -u scripts/whisper_segs.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp > 1.log 2>&1 &
 
-qwen3-asr-flash-filetrans模型识别需要规范化的音频,生成.qwen.txt文件
+qwen3-asr-flash-filetrans模型识别需要规范化的音频，生成.qwen.txt文件，LibriTTS-R不需要跑，它有.normalized.txt
 nohup python -u scripts/qwen_norm_segs.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp > 1.log 2>&1 &
 B站数据txt文字准确率高，只需要执行qwen3-asr进行规范化
 nohup python -u scripts/qwen_norm_segs.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
@@ -157,10 +157,10 @@ nohup python -u scripts/qwen_norm_segs.py --scp /usr/local/ocr/bilili/zh/dns_mos
 python -u scripts/filter_quality_jsonl.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp --output /usr/local/corpus/4th_biz/zh/segs/flac_txt.jsonl
 B站数据txt文字准确率高，只需要执行qwen3-asr进行规范化
 python -u scripts/filter_quality_jsonl.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --output /usr/local/ocr/bilili/zh/flac_txt.jsonl --allow-missing-whisper
-开源数据集先生成jsonl，再根据whisper\qwen3 asr过滤生成新jsonl
-python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/hi_fi_tts_v0 --scp /usr/local/corpus/en/hi_fi_tts_v0/dns_mos.scp --output /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl --skip-empty-txt
-python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/LibriTTS-R --scp /usr/local/corpus/en/LibriTTS-R/dns_mos.scp --output /usr/local/corpus/en/LibriTTS-R/flac_txt.jsonl --txt-suffix .normalized.txt --skip-empty-txt
-python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/VCTK/wav48_silence_trimmed --txt-root /usr/local/corpus/en/VCTK/txt --scp /usr/local/corpus/en/VCTK/dns_mos.scp --output /usr/local/corpus/en/VCTK/flac_txt.jsonl --skip-empty-txt --strip-stem-regex '_mic[0-9]+$'
+高质量数据集直接生成jsonl
+python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/hi_fi_tts_v0 --scp /usr/local/corpus/en/hi_fi_tts_v0/dns_mos.scp --output /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl
+python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/LibriTTS-R --scp /usr/local/corpus/en/LibriTTS-R/dns_mos.scp --output /usr/local/corpus/en/LibriTTS-R/flac_txt.jsonl
+python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/VCTK/wav48_silence_trimmed --txt-root /usr/local/corpus/en/VCTK/txt --scp /usr/local/corpus/en/VCTK/dns_mos.scp --output /usr/local/corpus/en/VCTK/flac_txt.jsonl
 
 
 统计jsonl中音频时长
@@ -208,3 +208,9 @@ nohup python -u scripts/qwen_norm_segs.py \
    --workers_per_gpu 1 \
    --batch_size 4 \
    > mos_zh.log 2>&1 &
+
+
+ python -u scripts/filter_freq_jsonl.py \
+   --jsonl frequency.jsonl \
+   --threshold 14000 \
+   --output frequency_gt_14000.scp

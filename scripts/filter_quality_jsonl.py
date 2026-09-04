@@ -32,7 +32,30 @@ def read_text(path: Path) -> str:
 
 
 def txt_path_for(flac_path: Path) -> Path:
-    return flac_path.with_suffix(".txt")
+    txt_path = flac_path.with_suffix(".txt")
+    if txt_path.exists():
+        return txt_path
+
+    normalized_path = flac_path.with_suffix(".normalized.txt")
+    if normalized_path.exists():
+        return normalized_path
+
+    original_path = flac_path.with_suffix(".original.txt")
+    if original_path.exists():
+        return original_path
+
+    vctk_txt_path = Path(
+        str(txt_path).replace("wav48_silence_trimmed", "txt").replace("wav48", "txt")
+    )
+    strip_stem_regex = re.compile(r"_mic[0-9]+$")
+    vctk_txt_path = vctk_txt_path.with_stem(
+        strip_stem_regex.sub("", vctk_txt_path.stem)
+    )
+    if vctk_txt_path.exists():
+        return vctk_txt_path
+
+    # 用于后续报 missing txt
+    return vctk_txt_path
 
 
 def whisper_path_for(flac_path: Path) -> Path:

@@ -3,6 +3,7 @@
 
 # Usage:
 # python dnsmos_local.py -t c:\temp\DNSChallenge4_Blindset -o DNSCh4_Blind.jsonl -p
+# python dnsmos_local.py --scp filtered_freq.scp -o DNSCh4_Blind.jsonl -p
 #
 
 import argparse
@@ -512,24 +513,46 @@ def scandir_generator(path):
                 yield from scandir_generator(entry.path)
 
 
+def load_scp(scp_path):
+    """Load one audio path per non-empty line from an SCP file."""
+    with scp_path.open('r', encoding='utf-8-sig') as scp_file:
+        for raw_line in scp_file:
+            audio_path = raw_line.strip()
+            if not audio_path or audio_path.startswith('#'):
+                continue
+            yield Path(audio_path)
+
+
+def iter_audio_files(testset_dir=None, scp_path=None):
+    if scp_path is not None:
+        yield from load_scp(scp_path)
+        return
+
+    for clip in scandir_generator(testset_dir):
+        if clip.suffix.lower() == '.flac':
+            yield clip
+
+
 def read_worker(
         testset_dir,
+        scp_path,
         completed_filenames,
         out_queue,
         progress_queue,
         buckets,
         bucket,
 ):
-    """Prefetch FLAC files into RAM so compute workers do not wait on storage."""
-    print(f"read_worker started, prefetching {testset_dir}")
+    """Prefetch audio files into RAM so compute workers do not wait on storage."""
+    input_description = (
+        f"scp={scp_path}" if scp_path is not None else f"testset_dir={testset_dir}"
+    )
+    print(f"read_worker started, prefetching {input_description}")
     queued = 0
     skipped_bucket = 0
     skipped_completed = 0
     read_failures = 0
 
-    for clip in scandir_generator(testset_dir):
-        if clip.suffix != '.flac':
-            continue
+    for clip in iter_audio_files(testset_dir=testset_dir, scp_path=scp_path):
         if bucket_for_filename(clip, buckets) != bucket:
             skipped_bucket += 1
             continue
@@ -641,7 +664,8 @@ def main():
     reader = Process(
         target=read_worker,
         args=(
-            Path(args.testset_dir).absolute(),
+            args.testset_dir.absolute() if args.testset_dir is not None else None,
+            args.scp_path.absolute() if args.scp_path is not None else None,
             mos_list,
             audio_queue,
             done_queue,
@@ -672,8 +696,24 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', "--testset_dir", default='.',
-                        help='Path to the dir containing audio clips in .flac to be evaluated')
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument(
+        '-t',
+        "--testset_dir",
+        type=Path,
+        default=None,
+        help='Path to the dir containing audio clips in .flac to be evaluated',
+    )
+    input_group.add_argument(
+        "--scp",
+        "--input-scp",
+        "--input_scp",
+        "--scp_path",
+        dest="scp_path",
+        type=Path,
+        default=None,
+        help='SCP containing one audio path per line',
+    )
     parser.add_argument('-o', "--jsonl_path", default=None, help='Dir to the jsonl that saves the results')
     parser.add_argument('-p', "--personalized_MOS", action='store_true',
                         help='Flag to indicate if personalized MOS score is needed or regular')
@@ -685,7 +725,7 @@ if __name__ == "__main__":
         "--prefetch_size",
         type=int,
         default=10000,
-        help="Maximum number of encoded FLAC files prefetched into the RAM queue.",
+        help="Maximum number of encoded audio files prefetched into the RAM queue.",
     )
     parser.add_argument(
         "--progress_interval",
@@ -695,6 +735,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    if args.testset_dir is not None and not args.testset_dir.is_dir():
+        parser.error(f"--testset_dir is not a directory: {args.testset_dir}")
+    if args.scp_path is not None and not args.scp_path.is_file():
+        parser.error(f"--scp is not a file: {args.scp_path}")
     if args.buckets < 1:
         parser.error("--buckets must be at least 1")
     if not 0 <= args.bucket < args.buckets:
