@@ -10,6 +10,13 @@ from tqdm import tqdm
 from torch.multiprocessing import Process, Queue
 
 
+# Bilibili segment files are bucketed by the first six characters of the
+# video id (the first three characters, ``BV1``, are fixed).  Using two
+# variable characters instead of one keeps each directory at a manageable
+# size for downstream scanners such as dnsmos_local.py.
+BILILI_BUCKET_LENGTH = 6
+
+
 def scandir_generator(path: Path):
     with os.scandir(path) as it:
         for entry in it:
@@ -123,8 +130,8 @@ def segment_one(args_tuple):
     sr = info.samplerate
     total_frames = info.frames
     out_stem = txt_path.stem
-    if str(txt_path).find('bilili/zh/') != -1:
-        out_dir = segments_root / out_stem[:4]
+    if 'bilili/zh/' in txt_path.as_posix():
+        out_dir = segments_root / out_stem[:BILILI_BUCKET_LENGTH]
     else:
         out_dir = segments_root / rel_txt.parent
     out_dir.mkdir(parents=True, exist_ok=True)

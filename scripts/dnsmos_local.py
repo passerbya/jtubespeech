@@ -580,15 +580,11 @@ def main():
             except:
                 print(item)
                 error += 1
-                pass
         if error > 0:
             print(f"Error: {error}")
-            i = 0
             with open(jsonl_file, 'w', encoding='utf-8') as f:
                 f.writelines(correct_list)
-                i += 1
-                if i % 100 == 0:
-                    f.flush()
+                f.flush()
     else:
         mos_list = set()
         jsonl_file.touch()
@@ -604,6 +600,11 @@ def main():
         f"workers_per_gpu={args.workers_per_gpu}, batch_size={args.batch_size}, "
         f"prefetch_size={args.prefetch_size}"
     )
+
+    if args.buckets > 1:
+        jsonl_file = jsonl_file.with_stem(
+            f"{jsonl_file.stem}_{args.bucket}"
+        )
 
     audio_queue = Queue(maxsize=args.prefetch_size)
     done_queue = Queue()

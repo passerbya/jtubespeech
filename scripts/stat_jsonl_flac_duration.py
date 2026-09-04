@@ -151,6 +151,7 @@ def main():
 
     done = load_done(progress_path, set([str(flac_path) for flac_path in flac_paths]))
     task_paths = [flac_path for flac_path in flac_paths if str(flac_path) not in done]
+    print(f'done={len(done)} flac_paths={len(flac_paths)} task_paths={len(task_paths)}')
 
     if task_paths:
         task_queue = Queue()

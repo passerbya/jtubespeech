@@ -14,7 +14,13 @@ git clone git@hf.co:openai/whisper-large-v2
 安装python环境
 conda create -n jtubespeech python==3.11
 conda activate jtubespeech
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 torch-complex
+python -m pip install --no-cache-dir \
+  torch==2.7.1 \
+  torchvision==0.22.1 \
+  torchaudio==2.7.1 \
+  --index-url https://download.pytorch.org/whl/cu128
+
+pip install torch-complex==0.4.4
 
 apt install gcc g++
 apt-get install ffmpeg
@@ -183,15 +189,16 @@ nohup python -u scripts/nisqa_filter_scp.py \
   > cu.log 2>&1 &
 
 
-  FIRST_TXT=/usr/local/ocr/jtubespeech/video/ms/segs/-O/-O0SsAuXOLk_0102.txt
-  START_TIME=$(stat -c '%y' "$FIRST_TXT" | cut -c1-19)
-  echo "$START_TIME"
+FIRST_TXT=/usr/local/corpus/5th_biz/zh/segs/36/369933_0026.txt
+FIRST_TXT=/usr/local/ocr/jtubespeech/video/ms/segs/-O/-O0SsAuXOLk_0102.txt
+START_TIME=$(stat -c '%y' "$FIRST_TXT" | cut -c1-19)
+echo "$START_TIME"
 
-  nohup python -u scripts/qwen_norm_segs.py \
-    --scp /usr/local/ocr/jtubespeech/video/ms/segs/dns_mos.scp \
-    --lang ms \
-    --overwrite-before "$START_TIME" \
-    > resume.log 2>&1 &
+nohup python -u scripts/qwen_norm_segs.py \
+--scp /usr/local/ocr/jtubespeech/video/ms/segs/dns_mos.scp \
+--lang ms \
+--overwrite-before "$START_TIME" \
+> resume.log 2>&1 &
 
  nohup python -u scripts/separate.py --path /usr/local/ocr/bilili/zh/ --buckets 3 --bucket 2 > sep_2.log 2>&1 &
 

@@ -65,6 +65,11 @@ def default_progress_path(jsonl_path: Path) -> Path:
 def default_duration_progress_path(jsonl_path: Path) -> Path:
     return jsonl_path.with_suffix(".duration.jsonl")
 
+def lang_duration_progress_path(jsonl_path: Path) -> Path:
+    stem = jsonl_path.stem.rsplit(".", 1)[0]
+    jsonl_path = jsonl_path.with_stem(stem).with_suffix(".duration.jsonl")
+    return jsonl_path
+
 
 def load_classifier(source: str, device: str):
     try:
@@ -443,6 +448,8 @@ def main():
 
     progress_path = default_progress_path(jsonl_path)
     duration_progress_path = default_duration_progress_path(jsonl_path)
+    if not duration_progress_path.is_file():
+        duration_progress_path = lang_duration_progress_path(jsonl_path)
     if not duration_progress_path.is_file():
         raise SystemExit(
             f"duration progress is not a file: {duration_progress_path}. "
