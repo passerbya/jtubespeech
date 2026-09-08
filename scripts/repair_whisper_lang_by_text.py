@@ -197,7 +197,7 @@ def main():
         lang_files = tqdm(lang_files, desc="repair_lang")
 
     for idx, lang_path in enumerate(lang_files, start=1):
-        if args.limit > 0 and idx > args.limit:
+        if 0 < args.limit < idx:
             break
         stats[process_one(lang_path, args)] += 1
 

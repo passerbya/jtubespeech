@@ -190,6 +190,7 @@ nohup python -u scripts/nisqa_filter_scp.py \
 
 
 FIRST_TXT=/usr/local/corpus/5th_biz/zh/segs/36/369933_0026.txt
+
 FIRST_TXT=/usr/local/ocr/jtubespeech/video/ms/segs/-O/-O0SsAuXOLk_0102.txt
 START_TIME=$(stat -c '%y' "$FIRST_TXT" | cut -c1-19)
 echo "$START_TIME"

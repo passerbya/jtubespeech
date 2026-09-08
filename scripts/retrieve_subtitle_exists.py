@@ -69,7 +69,7 @@ def retrieve_worker(proxy, lang, in_queue, out_queue, error_queue, empty_queue, 
         '--cookies', cookie_file,
         '--js-runtimes', 'node',
         '--extractor-args',
-        'youtube:player_client=default,web_embedded',
+        'youtube:player_client=mweb',
         url,
       ]
       cp = subprocess.run(cmd, universal_newlines=True, capture_output=True, text=True)
