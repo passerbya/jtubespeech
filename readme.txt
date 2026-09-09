@@ -154,11 +154,11 @@ B站数据txt文字准确率高，只需要执行qwen3-asr进行规范化
 nohup python -u scripts/qwen_norm_segs.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --allow-missing-whisper > 1.log 2>&1 &
 
 扫描生成音频与文本文件成对的jsonl
-python -u scripts/filter_quality_jsonl.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp --output /usr/local/corpus/4th_biz/zh/segs/flac_txt.jsonl
+python -u scripts/filter_quality_jsonl.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp
 B站数据txt文字准确率高，只需要执行qwen3-asr进行规范化
-python -u scripts/filter_quality_jsonl.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --output /usr/local/ocr/bilili/zh/flac_txt.jsonl --allow-missing-whisper
+python -u scripts/filter_quality_jsonl.py --scp /usr/local/ocr/bilili/zh/dns_mos.scp --allow-missing-whisper
 高质量数据集直接生成jsonl
-python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/hi_fi_tts_v0 --scp /usr/local/corpus/en/hi_fi_tts_v0/dns_mos.scp --output /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl
+python -u scripts/scan_flac_txt_jsonl.py --scp /usr/local/corpus/en/hi_fi_tts_v0/dns_mos.scp --output /usr/local/corpus/en/hi_fi_tts_v0/flac_txt.jsonl
 python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/LibriTTS-R --scp /usr/local/corpus/en/LibriTTS-R/dns_mos.scp --output /usr/local/corpus/en/LibriTTS-R/flac_txt.jsonl
 python -u scripts/scan_flac_txt_jsonl.py --root /usr/local/corpus/en/VCTK/wav48_silence_trimmed --txt-root /usr/local/corpus/en/VCTK/txt --scp /usr/local/corpus/en/VCTK/dns_mos.scp --output /usr/local/corpus/en/VCTK/flac_txt.jsonl
 

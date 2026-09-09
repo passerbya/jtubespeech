@@ -154,21 +154,6 @@ def load_scp(scp_path: Path):
                 yield Path(line)
 
 
-def load_flac_txt_jsonl(jsonl_path: Path):
-    with jsonl_path.open("r", encoding="utf-8-sig") as f:
-        for line_no, line in enumerate(f, start=1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                item = json.loads(line)
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"bad json at {jsonl_path}:{line_no}: {exc}") from exc
-            if not isinstance(item, list) or len(item) < 2:
-                raise ValueError(f"bad item at {jsonl_path}:{line_no}: expected [flac, txt]")
-            yield Path(item[0]), Path(item[1])
-
-
 def comparable_text(text: str) -> str:
     text = unicodedata.normalize("NFKC", text).lower()
     drop_chars = set(string.punctuation)
@@ -220,12 +205,10 @@ def select_quality_pair(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build high-quality [flac, text] jsonl from a .scp flac list or an existing [flac, txt] jsonl."
+        description="Build high-quality [flac, text] jsonl from a .scp flac list."
     )
     input_group = parser.add_mutually_exclusive_group(required=True)
     input_group.add_argument("--scp", type=Path, help=".scp file containing .flac paths.")
-    input_group.add_argument("--jsonl", type=Path, help="Input flac_txt.jsonl whose items are [flac, txt].")
-    parser.add_argument("--output", type=Path, required=True, help="Output .jsonl path.")
     parser.add_argument("--whisper-threshold", type=float, default=0.95)
     parser.add_argument("--qwen-threshold", type=float, default=0.80)
     parser.add_argument(
@@ -236,10 +219,7 @@ def main():
     parser.add_argument("--limit", type=int, default=0, help="Only check first N files, useful for testing.")
     args = parser.parse_args()
 
-    if args.scp is not None:
-        input_items = [(flac_path, txt_path_for(flac_path)) for flac_path in load_scp(args.scp)]
-    else:
-        input_items = list(load_flac_txt_jsonl(args.jsonl))
+    input_items = [(flac_path, txt_path_for(flac_path)) for flac_path in load_scp(args.scp)]
     if args.limit > 0:
         input_items = input_items[: args.limit]
 
@@ -260,8 +240,9 @@ def main():
         "lang_ok": 0,
     }
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    writer = SplitJsonlWriter(args.output)
+    output_path = args.scp.parent / (args.scp.stem + '.jsonl')
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    writer = SplitJsonlWriter(output_path)
     try:
         for flac_path, txt_path in tqdm(input_items, desc="filter_quality"):
             if not flac_path.exists():
