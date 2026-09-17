@@ -84,6 +84,9 @@ nohup python -u scripts/retrieve_subtitle_exists.py ja videoid/ja/jawiki-latest-
 5）下载视频
 nohup python -u scripts/download_video.py ja sub/ja/jawiki-latest-pages-articles-multistream-index.csv --outdir /usr/local/ocr/jtubespeech/video --proxies 127.0.0.1:7890 > ja.log 2>&1 &
 
+历史音频语言不匹配清理（每次一个阵列、一个语言，即时删除，按 empty 断点续跑）：
+见 docs/audio_language_cleanup.md，入口 scripts/cleanup_audio_language.py。
+
 export http_proxy=http://127.0.0.1:7890 && export https_proxy=http://127.0.0.1:7890 && yt-dlp -v --list-formats https://www.youtube.com/watch?v=yDc0_8emz7M
 export http_proxy=http://192.168.8.47:7890 && export https_proxy=http://192.168.8.47:7890 && yt-dlp -v --js-runtimes node --extractor-args "youtube:player-client=default,mweb;po_token=mweb.gvs+MlPA_YR3HhR4wsDBBnSs4Kb5qjFJHmEIvJ_--oUBgYqmHeBtnnqr22Iz6EzvvK49vIwWPeXyqr_dvFl-ZQ1h9J-Pj65pDyjsiU-NqsL95oE5s5Cllg==" https://www.youtube.com/watch?v=yDc0_8emz7M
 

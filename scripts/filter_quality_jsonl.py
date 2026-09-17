@@ -240,7 +240,7 @@ def main():
         "lang_ok": 0,
     }
 
-    output_path = args.scp.parent / (args.scp.stem + '.jsonl')
+    output_path = args.scp.parent / 'flac_txt.jsonl'
     output_path.parent.mkdir(parents=True, exist_ok=True)
     writer = SplitJsonlWriter(output_path)
     try:
