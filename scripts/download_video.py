@@ -136,7 +136,7 @@ def download_worker(proxy, lang, task_queue, error_queue, empty_queue, exceed_li
       f'po_token=mweb.gvs+{po_token};data_sync_id={data_sync_id}'
     )
     '''
-    extractor_args = 'youtube:player_client=mweb'
+    extractor_args = 'youtube:player_client=mweb;fetch_pot=always;pot_trace=true'
     #extractor_args = 'youtube:player_client=mweb;fetch_pot=always;pot_trace=true;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416'
     common_args = [
       '--proxy', f'http://{proxy}',

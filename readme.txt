@@ -148,6 +148,23 @@ nohup python -u scripts/dnsmos_local.py -t /usr/local/corpus/4th_biz/zh/segs/ -o
 过滤mos值合格的音频到scp列表
 python -u scripts/filter_scp_by_jsonl.py --jsonl /usr/local/corpus/4th_biz/zh/segs/dns_mos.jsonl --output /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp
 
+过滤多人说话（支持上述 SCP 或 filter_quality_jsonl.py 生成的 JSONL，自动断点续跑）：
+python -u scripts/filter_single_speaker.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp --device cuda:0
+python -u scripts/filter_single_speaker.py --jsonl /usr/local/corpus/4th_biz/zh/segs/flac_txt.zh.jsonl --device cuda:0
+输出同目录的 *_single_speaker.scp / *_single_speaker.jsonl，模型和参数配置见 docs/single_speaker_filter.md。
+短片段、短暂第二标签和重叠证据不足的结果默认单独写入 *_single_speaker_review.scp/jsonl 待复核。
+已有完整 .state.jsonl 时可加 --rebuild-only 重建筛选和待复核列表，不加载模型；正常退出清理锁文件并保留 /usr/local 等输入路径写法。
+在可联网机器下载并导出本地模型包（先配置 HF_TOKEN 和模型权限），再将 local/ 目录复制到服务器：
+export http_proxy=socks5h://192.168.8.123:1080
+export https_proxy="$http_proxy"
+export NO_PROXY=localhost,127.0.0.1,::1
+export no_proxy="$NO_PROXY"
+export HF_TOKEN=
+python -u scripts/filter_single_speaker.py --download-model --cache-dir /usr/local/data/models/pyannote
+8 卡 A800 同时处理一个列表：
+普通推理已强制离线，--offline 仅为兼容旧命令；缺少本地模型直接报错，不在线检查或补下载。
+python -u scripts/filter_single_speaker.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp --devices 0,1,2,3,4,5,6,7 --cache-dir /usr/local/data/models/pyannote --offline
+
 whisper识别语音文本,生成.whisper.txt文件
 nohup python -u scripts/whisper_segs.py --scp /usr/local/corpus/4th_biz/zh/segs/dns_mos.scp > 1.log 2>&1 &
 
