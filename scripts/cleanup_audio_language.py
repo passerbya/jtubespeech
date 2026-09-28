@@ -363,7 +363,7 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     root = dataset_root(args.root, args.lang)
-    videoid_dir = (args.videoid_dir or root / "videoid").expanduser().resolve()
+    videoid_dir = (args.videoid_dir or Path('.') / "videoid").expanduser().resolve()
     empty_fn = video_id_path(videoid_dir, "empty", args.lang)
     empty_fn.parent.mkdir(parents=True, exist_ok=True)
     # Coordinate cleanup runs without a database or separate progress manifest.

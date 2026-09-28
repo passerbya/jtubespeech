@@ -141,6 +141,19 @@ class FilterTests(unittest.TestCase):
         self.assertEqual(self.input.read_bytes(), original)
         self.assertTrue(all(path.exists() for path in (self.a, self.b, self.c)))
 
+    def test_progress_reports_cache_hits_and_speaker_counts(self):
+        self.write_scp(*([self.a] * 50 + [self.b] * 50))
+        options = ("--decision-policy", "strict", "--min-speaker-seconds", "0",
+                   "--min-speaker-ratio", "0")
+        self.assertEqual(self.run_filter(*options), 0)
+        self.output_text.seek(0)
+        self.output_text.truncate(0)
+        self.assertEqual(self.run_filter(*options, factory=lambda *args: self.fail("Unexpected inference")), 0)
+        output = self.output_text.getvalue()
+        self.assertIn("cache_hits=100", output)
+        self.assertIn("single=50", output)
+        self.assertIn("multiple=50", output)
+
     def test_jsonl_preserves_original_pair_unicode_and_extra_fields(self):
         self.input = self.root / "flac_txt.zh.jsonl"
         first = json.dumps([str(self.a), "字幕 file.qwen.txt", {"source": "人声"}], ensure_ascii=False)

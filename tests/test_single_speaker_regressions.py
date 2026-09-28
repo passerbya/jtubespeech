@@ -141,6 +141,27 @@ class PathTests(FileCase):
             self.run_filter("--rebuild-only", factory=lambda *args: self.fail("Unexpected inference"))
         self.assertEqual(self.state.read_bytes(), before)
 
+    def test_mount_prefix_change_reuses_unique_size_mtime_basename_signature(self):
+        self.run_filter()
+        old_path = self.root / "vdus" / "corpus" / self.audio.name
+        new_path = self.root / "usr" / "local" / "corpus" / self.audio.name
+        old_path.parent.mkdir(parents=True)
+        new_path.parent.mkdir(parents=True)
+        os.link(self.audio, old_path)
+        os.link(self.audio, new_path)
+        records = [json.loads(line) for line in self.state.read_text().splitlines()]
+        records[1]["audio"] = str(old_path)
+        records[1]["signature"]["device"] += 1000
+        records[1]["signature"]["inode"] += 1000
+        self.state.write_text("".join(json.dumps(record) + "\n" for record in records))
+        self.input.write_text(str(new_path) + "\n", encoding="utf-8")
+        before = self.state.read_bytes()
+        self.calls.clear()
+        self.run_filter("--rebuild-only", factory=lambda *args: self.fail("Unexpected inference"))
+        self.assertFalse(self.calls)
+        self.assertEqual(self.output.read_text(), str(new_path) + "\n")
+        self.assertEqual(self.state.read_bytes(), before)
+
     def test_actual_directory_symlink_preserves_paths_in_state_and_outputs(self):
         target = self.root / "physical"
         target.mkdir()

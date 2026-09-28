@@ -230,8 +230,11 @@ nohup python -u scripts/qwen_norm_segs.py \
    --batch_size 4 \
    > mos_zh.log 2>&1 &
 
+python -u scripts/get_freq.py \
+  --scp /usr/local/ocr/jtubespeech/video/ms/segs/dns_mos.scp \
+  -o /usr/local/ocr/jtubespeech/video/ms/segs/frequency.jsonl
 
  python -u scripts/filter_freq_jsonl.py \
-   --jsonl frequency.jsonl \
+   --jsonl /usr/local/ocr/jtubespeech/video/ms/segs/frequency.jsonl \
    --threshold 14000 \
-   --output frequency_gt_14000.scp
+   --output /usr/local/ocr/jtubespeech/video/ms/segs/dns_mos_14000.scp

@@ -166,6 +166,36 @@ def audio_signature(path):
             "device": info.st_dev, "inode": info.st_ino}
 
 
+def signature_alias_key(audio, signature):
+    """A portable fallback when device/inode or symlink spelling differs by server."""
+    if not isinstance(signature, dict):
+        return None
+    size = signature.get("size")
+    mtime_ns = signature.get("mtime_ns")
+    if not isinstance(size, int) or not isinstance(mtime_ns, int):
+        return None
+    return (Path(audio).name, size, mtime_ns)
+
+
+def path_spellings(path):
+    """Return lexical spelling plus a resolved spelling, without storing either one."""
+    path = Path(path)
+    spellings = {str(path)}
+    try:
+        spellings.add(str(path.resolve(strict=False)))
+    except OSError:
+        pass
+    return spellings
+
+
+def signatures_compatible(state_audio, state_signature, current_audio, current_signature):
+    if state_signature == current_signature:
+        return True
+    return signature_alias_key(state_audio, state_signature) == signature_alias_key(
+        current_audio, current_signature
+    ) and signature_alias_key(current_audio, current_signature) is not None
+
+
 def union_duration(intervals):
     total = 0.0
     end = None
@@ -307,6 +337,8 @@ class ProgressJournal:
     def __init__(self, stream, config):
         self.stream = stream
         self.cache = {}
+        self.path_aliases = defaultdict(set)
+        self.signature_aliases = defaultdict(set)
         stream.seek(0)
         header = None
         line_no = 0
@@ -341,7 +373,7 @@ class ProgressJournal:
                         raise ValueError("invalid state result")
                     if record["status"] == "ok":
                         validate_metrics(record["metrics"])
-                    self.cache[record["audio"]] = record
+                    self.remember(record)
             except (ValueError, KeyError, TypeError) as exc:
                 raise ValueError(f"Invalid state at line {line_no}: {exc}") from exc
         stream.seek(0, os.SEEK_END)
@@ -354,12 +386,34 @@ class ProgressJournal:
         self.stream.flush()
         os.fsync(self.stream.fileno())
         if record["kind"] == "result":
-            self.cache[record["audio"]] = record
+            self.remember(record)
+
+    def remember(self, record):
+        audio = record["audio"]
+        self.cache[audio] = record
+        for spelling in path_spellings(audio):
+            self.path_aliases[spelling].add(audio)
+        key = signature_alias_key(audio, record.get("signature"))
+        if key is not None:
+            self.signature_aliases[key].add(audio)
 
     def lookup(self, audio, signature, retry_errors):
-        # Input and state paths are already normalized by the user. Match them exactly.
-        record = self.cache.get(str(audio))
-        if record is None or record["signature"] != signature:
+        name = str(audio)
+        candidates = {name}
+        for spelling in path_spellings(audio):
+            candidates.update(self.path_aliases.get(spelling, ()))
+        if len(candidates) == 1 and name not in self.cache:
+            portable = self.signature_aliases.get(signature_alias_key(audio, signature), ())
+            if len(portable) == 1:
+                candidates.update(portable)
+        record = None
+        for candidate in candidates:
+            candidate_record = self.cache.get(candidate)
+            if candidate_record is not None and signatures_compatible(
+                    candidate_record["audio"], candidate_record.get("signature"), audio, signature):
+                record = candidate_record
+                break
+        if record is None:
             return None
         if retry_errors and record["status"] == "error":
             return None
@@ -570,6 +624,7 @@ def run_filter(args, backend_factory=None):
     processed_this_run = set()
     pending = {}
     pending_keys = set()
+    pending_waiters = Counter()
     backend = pool = None
     factory = backend_factory or PyannoteDiarizer
     initial_input_signature = audio_signature(input_path)
@@ -587,10 +642,22 @@ def run_filter(args, backend_factory=None):
                 for category, path in detail_temporaries.items()
             }
 
+            def tally_record(record, repeat=1):
+                if repeat <= 0:
+                    return
+                if record["status"] == "error":
+                    stats["error"] += repeat
+                    return
+                decision, _count, reason = filter_decision(record["metrics"], args)
+                stats[decision] += repeat
+                if decision == "review":
+                    stats["review_" + reason] += repeat
+
             def save_record(record, key, device):
                 journal.append(record)
                 processed_this_run.add(key)
                 stats["processed"] += 1
+                tally_record(record, 1 + pending_waiters.pop(key, 0))
                 if record["status"] == "error":
                     print(f"[RESULT ERROR] device={device} audio={record['audio']}: {record['error']}",
                           flush=True)
@@ -623,8 +690,10 @@ def run_filter(args, backend_factory=None):
                                         args.retry_errors and key not in processed_this_run)
                 if record is not None:
                     stats["cached"] += 1
+                    tally_record(record)
                 elif key in pending_keys:
                     stats["pending_duplicates"] += 1
+                    pending_waiters[key] += 1
                 elif args.rebuild_only:
                     raise ValueError(f"No valid cached result for {audio}; use the original complete state "
                                      "or omit --rebuild-only to run inference")
@@ -648,7 +717,15 @@ def run_filter(args, backend_factory=None):
                     if len(pending) >= max_pending:
                         collect(True)
                 if stats["records"] % 100 == 0:
-                    print(f"[PROGRESS] {dict(stats)} in_flight={len(pending)}", flush=True)
+                    print(
+                        f"[PROGRESS] records={stats['records']} submitted={stats['submitted']} "
+                        f"processed={stats['processed']} cache_hits={stats['cached']} "
+                        f"pending_duplicates={stats['pending_duplicates']} "
+                        f"single={stats['single']} multiple={stats['multiple']} "
+                        f"review={stats['review']} errors={stats['error']} "
+                        f"in_flight={len(pending)}",
+                        flush=True,
+                    )
             while pending:
                 collect(True)
 
@@ -666,17 +743,14 @@ def run_filter(args, backend_factory=None):
                 if record is None:
                     raise ValueError(f"Audio changed before output was built: {audio}; rerun to resume")
                 if record["status"] == "error":
-                    stats["error"] += 1
                     print(f"[ERROR] line={line_no} audio={audio}: {record['error']}", flush=True)
                 else:
                     decision, count, reason = filter_decision(record["metrics"], args)
-                    stats[decision] += 1
                     if decision == "single" or (decision == "review" and args.uncertain_action == "keep"):
                         selected.write(raw + "\n")
                     if decision == "review":
                         review_stream.write(raw + "\n")
                         category = "review_" + reason
-                        stats[category] += 1
                         detail_streams[category].write(raw + "\n")
                     elif decision == "multiple":
                         detail_streams["multiple"].write(raw + "\n")

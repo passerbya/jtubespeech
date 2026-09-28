@@ -224,7 +224,7 @@ def process_one(
             return "skip", flac_path, out_path, 0.0, f"empty lang: {lang_path}", None
 
         if not same_language(lang, target_lang):
-            if lang not in ('ar', 'fa', 'id', 'ja', 'km', 'ko', 'lo', 'ms', 'th', 'tl', 'vi'):
+            if lang not in ('en', 'zh', 'ar', 'fa', 'id', 'ja', 'km', 'ko', 'lo', 'ms', 'th', 'tl', 'vi', 'es', 'fr', 'ru'):
                 return "skip", flac_path, out_path, 0.0, "lang is en", None
             if overwrite_before is not None and not txt_was_modified_before(txt_path, overwrite_before):
                 return "skip", flac_path, txt_path, 0.0, "txt is not older than --overwrite-before", None
