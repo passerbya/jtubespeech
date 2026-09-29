@@ -716,7 +716,7 @@ def run_filter(args, backend_factory=None):
                     stats["submitted"] += 1
                     if len(pending) >= max_pending:
                         collect(True)
-                if stats["records"] % 100 == 0:
+                if stats["records"] % 500 == 0:
                     print(
                         f"[PROGRESS] records={stats['records']} submitted={stats['submitted']} "
                         f"processed={stats['processed']} cache_hits={stats['cached']} "
