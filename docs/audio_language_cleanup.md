@@ -52,7 +52,7 @@ python -u scripts/cleanup_audio_language.py \
 1. VID 已在 empty：直接删除仍存在的对应文件，不再访问 YouTube。已有记录不区分当初写入原因。
 2. VID 已在 error 或 unknown：保留本地文件，跳过查询。同一 VID 同时在 empty 中时，优先按 empty 补删。
 3. 其余 VID 查询 YouTube 音轨语言；确认没有目标语言音轨后，先把 VID 去重追加到 empty，并 flush/fsync，随后立即删除该 VID 的文件。
-4. Video unavailable、This video is unavailable、私有/已删除/付费视频等进入 error_queue，并立即去重追加到 error 文件；保留本地文件，下次跳过。
+4. 只有 `is_unavailable_error` 明确识别出的不可用视频错误进入 error_queue，并立即去重追加到 error 文件；保留本地文件，下次跳过。VPN/代理错误和普通网络错误不写入永久 error。
 5. UNKNOWN AUDIO 进入 unknown_queue，并立即去重追加到 unknown 文件；保留本地文件，下次跳过。
 6. 某个文件删除失败时打印路径和原因，继续处理其他文件。VID 已在 empty 中，下次重跑会直接补删。
 

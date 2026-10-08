@@ -209,6 +209,7 @@ nohup python -u scripts/nisqa_filter_scp.py \
   > cu.log 2>&1 &
 
 
+FIRST_TXT=/usr/local/ocr/bilili/zh/segs/BV1bF1/BV1bF1fB4ETa_0035.qwen.txt
 FIRST_TXT=/usr/local/corpus/5th_biz/zh/segs/36/369933_0026.txt
 
 FIRST_TXT=/usr/local/ocr/jtubespeech/video/ms/segs/-O/-O0SsAuXOLk_0102.txt

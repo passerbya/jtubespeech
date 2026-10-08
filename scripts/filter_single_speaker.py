@@ -726,13 +726,39 @@ def run_filter(args, backend_factory=None):
                         f"in_flight={len(pending)}",
                         flush=True,
                     )
+            if pending:
+                print(f"[DRAIN] input_exhausted records={stats['records']} "
+                      f"in_flight={len(pending)}; waiting for final inference results", flush=True)
             while pending:
                 collect(True)
+            print(f"[INFERENCE DONE] records={stats['records']} processed={stats['processed']} "
+                  f"cache_hits={stats['cached']} in_flight=0", flush=True)
 
             # Results are persisted in completion order. A streaming second pass restores
             # input order without retaining an unbounded backlog behind one slow clip.
             if audio_signature(input_path) != initial_input_signature:
                 raise ValueError("Input list changed during filtering; retry using the saved state")
+            write_started = time.monotonic()
+            write_reported = write_started
+            checked = 0
+            written = Counter()
+
+            def report_writing(now):
+                elapsed = max(0.0, now - write_started)
+                total = stats["records"]
+                percent = checked * 100.0 / total if total else 100.0
+                rate = checked / elapsed if elapsed > 0 else 0.0
+                print(
+                    f"[WRITE PROGRESS] checked={checked}/{total} percent={percent:.2f} "
+                    f"main_written={written['main']} review_written={written['review']} "
+                    f"multiple_written={written['multiple']} errors={written['error']} "
+                    f"elapsed_s={elapsed:.1f} records_per_s={rate:.1f}",
+                    flush=True,
+                )
+
+            print(f"[WRITE START] records={stats['records']} output={temporary}; "
+                  "validating cached audio signatures and writing lists; no model inference",
+                  flush=True)
             records = iter_records(input_path, input_format, path_base)
             for line_no, raw, audio in islice(records, args.limit or None):
                 try:
@@ -743,29 +769,39 @@ def run_filter(args, backend_factory=None):
                 if record is None:
                     raise ValueError(f"Audio changed before output was built: {audio}; rerun to resume")
                 if record["status"] == "error":
+                    written["error"] += 1
                     print(f"[ERROR] line={line_no} audio={audio}: {record['error']}", flush=True)
                 else:
                     decision, count, reason = filter_decision(record["metrics"], args)
                     if decision == "single" or (decision == "review" and args.uncertain_action == "keep"):
                         selected.write(raw + "\n")
+                        written["main"] += 1
                     if decision == "review":
                         review_stream.write(raw + "\n")
+                        written["review"] += 1
                         category = "review_" + reason
                         detail_streams[category].write(raw + "\n")
                     elif decision == "multiple":
                         detail_streams["multiple"].write(raw + "\n")
+                        written["multiple"] += 1
                     if args.verbose:
                         print(f"[{decision.upper()}] line={line_no} speakers={count} reason={reason} "
                               f"audio={audio} seconds={record['metrics']['speaker_seconds']}", flush=True)
-            selected.flush()
-            os.fsync(selected.fileno())
-            review_stream.flush()
-            os.fsync(review_stream.fileno())
-            for stream in detail_streams.values():
+                checked += 1
+                now = time.monotonic()
+                if checked % 10000 == 0 or now - write_reported >= 30.0:
+                    report_writing(now)
+                    write_reported = now
+            report_writing(time.monotonic())
+            print("[WRITE COMPLETE] all input records classified into output lists", flush=True)
+            for stream in (selected, review_stream, *detail_streams.values()):
+                print(f"[SYNC] path={stream.name}", flush=True)
                 stream.flush()
                 os.fsync(stream.fileno())
+            print("[SYNC COMPLETE] output files flushed to disk", flush=True)
         if audio_signature(input_path) != initial_input_signature:
             raise ValueError("Input list changed during filtering; retry using the saved state")
+        print("[PUBLISH] replacing temporary lists with final output files", flush=True)
         for category, path in detail_paths.items():
             os.replace(detail_temporaries[category], path)
         os.replace(review_temporary, review)

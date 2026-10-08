@@ -18,9 +18,9 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-e96c0ab3540e4cff8365973a1
 
 MODEL = "qwen3-asr-flash-filetrans"
 
-API_URL_UPLOADS = "https://dashscope.aliyuncs.com/api/v1/uploads"
-API_URL_SUBMIT = "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription"
-API_URL_QUERY_BASE = "https://dashscope.aliyuncs.com/api/v1/tasks/"
+API_URL_UPLOADS = "https://llm-v4kshd611yh65n8o.cn-beijing.maas.aliyuncs.com/api/v1/uploads"
+API_URL_SUBMIT = "https://llm-v4kshd611yh65n8o.cn-beijing.maas.aliyuncs.com/api/v1/services/audio/asr/transcription"
+API_URL_QUERY_BASE = "https://llm-v4kshd611yh65n8o.cn-beijing.maas.aliyuncs.com/api/v1/tasks/"
 
 
 def get_upload_policy() -> dict[str, Any]:

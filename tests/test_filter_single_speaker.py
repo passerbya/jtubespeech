@@ -142,7 +142,7 @@ class FilterTests(unittest.TestCase):
         self.assertTrue(all(path.exists() for path in (self.a, self.b, self.c)))
 
     def test_progress_reports_cache_hits_and_speaker_counts(self):
-        self.write_scp(*([self.a] * 50 + [self.b] * 50))
+        self.write_scp(*([self.a] * 250 + [self.b] * 250))
         options = ("--decision-policy", "strict", "--min-speaker-seconds", "0",
                    "--min-speaker-ratio", "0")
         self.assertEqual(self.run_filter(*options), 0)
@@ -150,9 +150,28 @@ class FilterTests(unittest.TestCase):
         self.output_text.truncate(0)
         self.assertEqual(self.run_filter(*options, factory=lambda *args: self.fail("Unexpected inference")), 0)
         output = self.output_text.getvalue()
-        self.assertIn("cache_hits=100", output)
-        self.assertIn("single=50", output)
-        self.assertIn("multiple=50", output)
+        self.assertIn("cache_hits=500", output)
+        self.assertIn("single=250", output)
+        self.assertIn("multiple=250", output)
+
+    def test_output_stage_reports_progress_without_repeating_inference_or_counts(self):
+        self.write_scp(self.a, self.b, self.c, self.a)
+        # Simulate slow metadata reads in the second pass without slowing the test.
+        with patch.object(filtering.time, "monotonic", side_effect=[0, 31, 62, 93, 124, 125]):
+            self.assertEqual(self.run_filter("--decision-policy", "strict",
+                                            "--min-speaker-seconds", "0",
+                                            "--min-speaker-ratio", "0"), 0)
+        output = self.output_text.getvalue()
+        stages = ["[INFERENCE DONE]", "[WRITE START]", "[WRITE PROGRESS]",
+                  "[WRITE COMPLETE]", "[SYNC]", "[SYNC COMPLETE]", "[PUBLISH]", "[DONE]"]
+        positions = [output.index(stage) for stage in stages]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("checked=1/4 percent=25.00", output)
+        self.assertIn("checked=4/4 percent=100.00 main_written=2 review_written=0 multiple_written=1",
+                      output)
+        self.assertIn("'single': 2", output)
+        self.assertEqual(len(self.calls), 3)
+        self.assertEqual(self.output().read_text(), f"{self.a}\n{self.a}\n")
 
     def test_jsonl_preserves_original_pair_unicode_and_extra_fields(self):
         self.input = self.root / "flac_txt.zh.jsonl"

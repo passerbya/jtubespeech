@@ -238,7 +238,10 @@ def clean_language(root, args, empty_fn):
         def consume(future, paths):
             vid, status, info, error = future.result()
             if status != "ok":
-                if status == "unavailable" or is_unavailable_error(error):
+                # fetch_metadata derives unavailable from the complete yt-dlp
+                # error message via is_unavailable_error(). Transient network,
+                # proxy and timeout failures remain retryable.
+                if status == "unavailable":
                     error_queue.put(vid)
                     persist_pending_video_ids(error_queue, error_output, error_vids)
                     stats["unavailable"] += 1
